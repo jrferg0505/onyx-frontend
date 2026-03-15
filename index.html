@@ -441,6 +441,22 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 .fin-tabs{display:flex;gap:2px;background:var(--g2);border-radius:10px;padding:3px;margin:0 0 16px;}
 .fin-tab{flex:1;padding:7px;text-align:center;font-size:14px;font-weight:500;color:var(--t2);border-radius:8px;cursor:pointer;border:none;background:none;font-family:var(--font);}
 .fin-tab.on{background:var(--g1);color:var(--t1);}
+/* Schedule */
+.sched-sync-box{padding:20px;border-bottom:1px solid var(--bdr);}
+.sched-sync-row{display:flex;gap:8px;margin-top:10px;}
+.sched-sync-row input{flex:1;background:var(--g2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--t1);font-family:var(--font);}
+.sched-sync-row input::placeholder{color:var(--t3);}
+.sched-shift-row{display:flex;align-items:center;padding:13px 16px;gap:12px;border-bottom:1px solid var(--bdr);}
+.sched-shift-icon{width:38px;height:38px;border-radius:11px;background:var(--g2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.sched-shift-info{flex:1;}
+.sched-shift-date{font-size:15px;font-weight:600;color:var(--t1);}
+.sched-shift-time{font-size:13px;color:var(--t2);margin-top:2px;}
+.sched-shift-hrs{font-size:14px;font-weight:600;color:var(--t2);}
+.sched-pay-card{margin:16px;padding:16px 20px;background:var(--g1);border-radius:14px;}
+.sched-pay-label{font-size:12px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;}
+.sched-pay-amount{font-size:32px;font-weight:700;letter-spacing:-1px;color:var(--t1);}
+.sched-pay-sub{font-size:13px;color:var(--t2);margin-top:3px;}
+.sched-empty{padding:40px 20px;text-align:center;color:var(--t3);font-size:14px;}
 
 </style>
 <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
@@ -641,6 +657,10 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
       <button class="sb-row" id="nv-finance" onclick="showPanel('finance')">
         <span class="sb-icon" style="background:var(--g2)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></span>
         <span class="sb-label">Finance</span><span class="sb-chev">›</span>
+      </button>
+      <button class="sb-row" id="nv-schedule" onclick="showPanel('schedule')">
+        <span class="sb-icon" style="background:var(--g2)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg></span>
+        <span class="sb-label">Schedule</span><span class="sb-chev">›</span>
       </button>
     </div>
     <div class="sb-hist-lbl">Recent</div>
@@ -886,6 +906,37 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
       </div></div>
     </div>
 
+    <!-- SCHEDULE PANEL -->
+    <div id="schedule-panel" class="panel">
+      <div class="ph">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div><div class="ph-title">Schedule</div><div class="ph-sub" id="sched-sub">Work shifts</div></div>
+          <button id="sched-clear-btn" onclick="schedClear()" style="font-size:13px;padding:7px 12px;display:none;">Clear</button>
+        </div>
+      </div>
+      <div class="pscroll">
+        <!-- Sync box -->
+        <div class="sched-sync-box">
+          <div style="font-size:13px;color:var(--t2);margin-bottom:2px;">Paste your weekly Google Doc schedule link:</div>
+          <div class="sched-sync-row">
+            <input type="url" id="sched-url-inp" placeholder="https://docs.google.com/document/d/…" />
+            <button class="sa pri" id="sched-sync-btn" onclick="schedSync()" style="padding:10px 16px;white-space:nowrap;">Sync</button>
+          </div>
+          <div id="sched-sync-status" style="font-size:13px;color:var(--t3);margin-top:8px;"></div>
+        </div>
+        <!-- Paycheck card -->
+        <div id="sched-pay-card" class="sched-pay-card" style="display:none;">
+          <div class="sched-pay-label">Projected Paycheck</div>
+          <div class="sched-pay-amount" id="sched-pay-amt">—</div>
+          <div class="sched-pay-sub" id="sched-pay-sub"></div>
+        </div>
+        <!-- Shifts list -->
+        <div class="grp" id="sched-shifts-list">
+          <div class="sched-empty">No shifts synced yet.<br>Paste your schedule link above.</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -900,7 +951,7 @@ function bFetch(path,opts={}){
   const hdrs={'X-API-Key':ONYX_API_KEY,...(opts.headers||{})};
   return fetch(BACKEND+path,{...opts,headers:hdrs});
 }
-const SYSBASE=`You are Onyx, Reed's personal AI. Reed Ferguson, Indianapolis, works at donut shop, hunting for office job ($18+/hr, no degree, 9-5 M-F), saving for car, learning AI. Be direct, no filler. Smart friend tone. Search web for jobs/news/live data. You have access to Reed's Google Calendar — when he asks about his schedule, upcoming events, what's on his calendar, or anything time/appointment related, real calendar data will be injected into this system prompt for you to reference. You also have access to Reed's Gmail — when he asks about emails, inbox, messages, or wants to reply to someone, real email data will be injected into this system prompt. You also have access to Reed's bank account via Plaid — when he asks about his balance, spending, or recent transactions, real bank data will be injected into this system prompt.`;
+const SYSBASE=`You are Onyx, Reed's personal AI. Reed Ferguson, Indianapolis, works at donut shop, hunting for office job ($18+/hr, no degree, 9-5 M-F), saving for car, learning AI. Be direct, no filler. Smart friend tone. Search web for jobs/news/live data. You have access to Reed's Google Calendar — when he asks about his schedule, upcoming events, what's on his calendar, or anything time/appointment related, real calendar data will be injected into this system prompt for you to reference. You also have access to Reed's Gmail — when he asks about emails, inbox, messages, or wants to reply to someone, real email data will be injected into this system prompt. You also have access to Reed's bank account via Plaid — when he asks about his balance, spending, or recent transactions, real bank data will be injected into this system prompt. You also have access to Reed's work schedule — when he asks about his shifts, when he works, his next shift, or his paycheck, real shift data will be injected into this system prompt.`;
 
 let key=localStorage.getItem('reed_key')||'';
 let msgs=[],busy=false,editJob=null,activeConv=null,activeProj=null;
@@ -937,7 +988,7 @@ function showPanel(name){
   document.querySelectorAll('.nv').forEach(n=>n.classList.remove('on'));
   panelEl.classList.add('on');
   if(navEl) navEl.classList.add('on');
-  var titles={chat:'Onyx',memory:'Memory & Projects',jobs:'Job Tracker',agent:'Agent',whatsapp:'WhatsApp',calendar:'Calendar',gmail:'Gmail'};
+  var titles={chat:'Onyx',memory:'Memory & Projects',jobs:'Job Tracker',agent:'Agent',whatsapp:'WhatsApp',calendar:'Calendar',gmail:'Gmail',finance:'Finance',schedule:'Schedule'};
   document.getElementById('tb-title').textContent=titles[name]||'Onyx';
   if(name==='memory')renderMemory();
   if(name==='jobs')renderJobs();
@@ -996,6 +1047,7 @@ function needsLong(t){return /write|draft|email|letter|resume|cover|explain|how 
 function needsCalendar(t){return /calendar|schedule|event|appointment|meeting|remind|when is|what.*day|this week|today|tomorrow|upcoming/i.test(t);}
 function needsGmail(t){return /email|gmail|inbox|mail|message|unread|reply\s+to|send.*to|wrote.*me|hear.*from/i.test(t);}
 function needsBankData(t){return /\b(balance|how\s+much.*(have|left|in\s+(my|the))|account\s+balance|bank\s+balance|checking|savings\s+account|recent\s+transactions?|transaction\s+history|how\s+much.*spent?|what.*spend|spending\s+this\s+week)\b/i.test(t);}
+function needsShiftData(t){return /\b(when\s+do\s+i\s+work|next\s+shift|my\s+shift|work\s+(this\s+week|today|tomorrow|schedule)|how\s+many\s+hours|paycheck|pay\s*check|how\s+much.*pay|what.*i\s+make|shift.*week|when.*work|donut\s+shop.*schedule)\b/i.test(t);}
 function isMorningBriefing(t){return /^(good\s*morning|gm|morning|hey\s+morning|what('?s|\s+is)\s+(my\s+)?(day|today)|what('?s|\s+is)\s+today|today('?s|\s+is)|\bmorning\s+briefing\b|what\s+do\s+i\s+have\s+today|how('?s|\s+is)\s+(my\s+)?day|day\s+look)/i.test(t.trim());}
 
 async function generateMorningBriefing(forWhatsApp=false){
@@ -1113,6 +1165,21 @@ async function buildSys(lastMsg=''){
         }
       }else if(d.error==='not_connected'){
         s+='\n\nBank: Not connected yet (Reed has not linked a bank account in Onyx Finance panel).';
+      }
+    }catch(e){}
+  }
+  if(needsShiftData(lastMsg)){
+    try{
+      const r=await bFetch('/schedule/shifts');
+      const d=await r.json();
+      const today=new Date().toISOString().slice(0,10);
+      const upcoming=(d.shifts||[]).filter(s=>s.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
+      if(upcoming.length){
+        const lines=upcoming.slice(0,7).map(s=>`- ${s.day} ${s.date}: ${s.start}–${s.end} (${s.hours}h)`);
+        s+=`\n\nReed's Work Schedule (upcoming shifts):\n${lines.join('\n')}`;
+        if(d.projected_paycheck!=null)s+=`\nProjected paycheck this period: $${d.projected_paycheck.toFixed(2)} (${d.total_hours}h × $${d.hourly_rate}/hr)`;
+      }else{
+        s+='\n\nReed\'s Work Schedule: No upcoming shifts synced yet.';
       }
     }catch(e){}
   }
@@ -2151,7 +2218,90 @@ const origShowPanelFin=window.showPanel;
 window.showPanel=function(name){
   origShowPanelFin(name);
   if(name==='finance') finCheckStatus();
+  if(name==='schedule') schedLoad();
 };
+
+// ═══ SCHEDULE ═══
+async function schedSync(){
+  const url=_el('sched-url-inp').value.trim();
+  if(!url){showToast('Paste a Google Doc URL first');return;}
+  _el('sched-sync-btn').disabled=true;
+  _el('sched-sync-btn').textContent='Syncing…';
+  _el('sched-sync-status').textContent='Fetching and parsing schedule…';
+  try{
+    const r=await bFetch('/schedule/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({doc_url:url})});
+    const d=await r.json();
+    if(d.error){
+      _el('sched-sync-status').style.color='#f66';
+      _el('sched-sync-status').textContent='Error: '+d.error;
+      return;
+    }
+    _el('sched-sync-status').style.color='var(--t3)';
+    _el('sched-sync-status').textContent=`✓ Synced ${d.shifts.length} shifts${d.calendar_events_added>0?' · '+d.calendar_events_added+' added to Calendar':''}`;
+    _el('sched-url-inp').value='';
+    schedLoad();
+  }catch(e){
+    _el('sched-sync-status').style.color='#f66';
+    _el('sched-sync-status').textContent='Could not sync — check connection.';
+  }finally{
+    _el('sched-sync-btn').disabled=false;
+    _el('sched-sync-btn').textContent='Sync';
+  }
+}
+
+async function schedLoad(){
+  try{
+    const r=await bFetch('/schedule/shifts');
+    const d=await r.json();
+    const shifts=d.shifts||[];
+    const today=new Date().toISOString().slice(0,10);
+    const upcoming=shifts.filter(s=>s.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
+    // Paycheck card
+    if(d.projected_paycheck!=null&&upcoming.length>0){
+      _el('sched-pay-card').style.display='block';
+      _el('sched-pay-amt').textContent='$'+d.projected_paycheck.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+      _el('sched-pay-sub').textContent=d.total_hours+'h × $'+(d.hourly_rate||'?')+'/hr · this pay period';
+    }else{
+      _el('sched-pay-card').style.display='none';
+    }
+    // Shifts list
+    const list=_el('sched-shifts-list');
+    if(!upcoming.length){
+      list.innerHTML='<div class="sched-empty">No upcoming shifts.<br>Paste your schedule doc link above.</div>';
+      _el('sched-clear-btn').style.display='none';
+      _el('sched-sub').textContent='Work shifts';
+      return;
+    }
+    _el('sched-clear-btn').style.display='';
+    _el('sched-sub').textContent=upcoming.length+' upcoming shift'+(upcoming.length>1?'s':'');
+    const dayEmoji={'Monday':'📅','Tuesday':'📅','Wednesday':'📅','Thursday':'📅','Friday':'📅','Saturday':'🌙','Sunday':'🌙'};
+    list.innerHTML=upcoming.map(s=>{
+      const em=dayEmoji[s.day]||'📅';
+      const dateObj=new Date(s.date+'T12:00:00');
+      const fmt=dateObj.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+      const isNext=s===upcoming[0];
+      return `<div class="sched-shift-row">
+        <div class="sched-shift-icon">${em}</div>
+        <div class="sched-shift-info">
+          <div class="sched-shift-date">${fmt}${isNext?' <span style="font-size:11px;background:#2563eb22;color:#60a5fa;border-radius:6px;padding:1px 6px;font-weight:500;">Next</span>':''}</div>
+          <div class="sched-shift-time">${s.start} – ${s.end}</div>
+        </div>
+        <div class="sched-shift-hrs">${s.hours}h</div>
+      </div>`;
+    }).join('');
+  }catch(e){console.warn('schedLoad error',e);}
+}
+
+async function schedClear(){
+  if(!confirm('Clear all synced shifts?')) return;
+  await bFetch('/schedule/shifts/clear',{method:'POST'}).catch(()=>{});
+  _el('sched-pay-card').style.display='none';
+  _el('sched-clear-btn').style.display='none';
+  _el('sched-sub').textContent='Work shifts';
+  _el('sched-sync-status').textContent='';
+  _el('sched-shifts-list').innerHTML='<div class="sched-empty">No shifts synced yet.<br>Paste your schedule link above.</div>';
+  showToast('Shifts cleared');
+}
 
 </script>
 </body>
