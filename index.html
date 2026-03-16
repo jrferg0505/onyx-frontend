@@ -631,8 +631,8 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
     <div class="sf" style="margin-top:14px;"><div class="sf-lbl">What should Onyx remember?</div><textarea class="si" id="mem-inp" rows="4" placeholder="I prefer morning shifts…"></textarea></div>
     <div class="sf" style="margin-top:12px;"><div class="sf-lbl">Category</div>
       <select class="si si-sel" id="mem-cat">
-        <option value="goal">Goal</option><option value="preference">Preference</option>
-        <option value="fact">About Me</option><option value="reminder">Reminder</option><option value="other">Other</option>
+        <option value="preference">Preference</option><option value="goal">Goal</option>
+        <option value="work">Work</option><option value="general">General</option>
       </select>
     </div>
     <div class="sh-acts"><button class="sa sec" onclick="closeMem()">Cancel</button><button class="sa pri" onclick="saveMem()">Save</button></div>
@@ -1394,7 +1394,6 @@ async function sendMsg(){
   setThink(true);busy=true;
 
   // ── Memory commands ────────────────────────────────────────────────────────
-  const tl=text.toLowerCase();
   // "remember that X" — save memory
   const remMatch=text.match(/^remember (?:that )?(.+)$/i);
   if(remMatch){
