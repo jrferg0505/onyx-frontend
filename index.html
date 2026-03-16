@@ -2657,6 +2657,7 @@ async function speakResponse(text) {
 const VM = (() => {
   let active = false;
   let vmState = 'idle'; // idle | ready | recording | thinking | speaking
+  let _cachedStream = null; // persists across sessions — never stopped so no re-permission prompt
   let micStream = null, audioCtx = null;
   let recorder = null, chunks = [];
   let interrupted = false, currentAudio = null;
@@ -2685,11 +2686,15 @@ const VM = (() => {
 
   async function start() {
     if (active) return;
-    try {
-      micStream = await navigator.mediaDevices.getUserMedia({
-        audio: {echoCancellation:true, noiseSuppression:true, sampleRate:16000}
-      });
-    } catch(e) { showToast('Microphone access denied'); return; }
+    // Reuse cached stream so iOS doesn't re-prompt for mic permission every session
+    if (!_cachedStream || _cachedStream.getTracks().some(t => t.readyState === 'ended')) {
+      try {
+        _cachedStream = await navigator.mediaDevices.getUserMedia({
+          audio: {echoCancellation:true, noiseSuppression:true, sampleRate:16000}
+        });
+      } catch(e) { showToast('Microphone access denied'); return; }
+    }
+    micStream = _cachedStream;
 
     active = true; interrupted = false;
     audioCtx = new AudioContext(); // created on user gesture — unlocks iOS audio output
@@ -2708,7 +2713,7 @@ const VM = (() => {
     active = false; interrupted = true;
     _stopRecorder();
     if (currentAudio) { try { currentAudio.stop(); } catch(e){} currentAudio = null; }
-    if (micStream) micStream.getTracks().forEach(t => t.stop());
+    // Do NOT stop micStream tracks — keeping _cachedStream alive avoids re-permission on iOS
     if (audioCtx)  audioCtx.close().catch(()=>{});
     const ov = $overlay();
     if (ov) { ov.classList.remove('active','vm-idle','vm-ready','vm-recording','vm-thinking','vm-speaking'); }
