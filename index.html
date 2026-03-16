@@ -477,13 +477,17 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 .lights-custom-row input[type=color]{width:42px;height:42px;border:none;border-radius:50%;cursor:pointer;padding:0;background:none;}
 
 /* ── Voice Mode ──────────────────────────────────────────────────────────── */
-#vm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
+#vm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px;}
 #vm-overlay.active{display:flex;}
-#vm-canvas{cursor:pointer;border-radius:50%;}
-#vm-status-txt{font-size:18px;letter-spacing:0.2px;color:var(--t2);transition:color .4s;font-weight:500;}
-#vm-transcript{font-size:14px;color:var(--t3);max-width:320px;text-align:center;min-height:22px;padding:0 24px;line-height:1.5;}
-#vm-hint{font-size:12px;color:var(--t3);opacity:0.6;min-height:16px;}
-#vm-close{position:absolute;top:18px;right:18px;background:var(--g2);border:none;color:var(--t2);font-size:13px;padding:8px 16px;border-radius:20px;cursor:pointer;font-family:var(--font);transition:background .15s;}
+#vm-status-txt{font-size:20px;letter-spacing:0.2px;color:var(--t2);font-weight:500;}
+#vm-transcript{font-size:14px;color:var(--t3);max-width:320px;text-align:center;min-height:44px;padding:0 24px;line-height:1.6;}
+#vm-hint{font-size:13px;color:var(--t3);opacity:0.6;min-height:18px;}
+/* Push-to-talk button */
+#vm-ptt{width:140px;height:140px;border-radius:50%;background:var(--g2);border:3px solid rgba(255,255,255,0.08);color:var(--t1);font-size:48px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s,background .15s,box-shadow .15s;user-select:none;-webkit-user-select:none;touch-action:none;}
+#vm-ptt:hover{background:var(--g3);}
+#vm-ptt.recording{background:rgba(239,68,68,0.25);border-color:rgba(239,68,68,0.7);box-shadow:0 0 0 12px rgba(239,68,68,0.12),0 0 0 24px rgba(239,68,68,0.06);transform:scale(1.08);animation:vm-pulse 1s ease-in-out infinite;}
+@keyframes vm-pulse{0%,100%{box-shadow:0 0 0 12px rgba(239,68,68,0.12),0 0 0 24px rgba(239,68,68,0.06);}50%{box-shadow:0 0 0 18px rgba(239,68,68,0.18),0 0 0 36px rgba(239,68,68,0.04);}}
+#vm-close{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);background:var(--g2);border:none;color:var(--t2);font-size:15px;padding:12px 32px;border-radius:30px;cursor:pointer;font-family:var(--font);transition:background .15s;white-space:nowrap;}
 #vm-close:hover{background:var(--g3);}
 #vm-btn{width:32px;height:32px;border-radius:50%;background:var(--g2);border:none;color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s,color .15s;}
 #vm-btn:hover{background:var(--g3);}
@@ -1041,11 +1045,11 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 
 <!-- VOICE MODE OVERLAY -->
 <div id="vm-overlay">
-  <button id="vm-close" onclick="VM.stop()">✕ Exit Voice</button>
-  <canvas id="vm-canvas" width="220" height="220"></canvas>
-  <div id="vm-status-txt">Tap to begin</div>
+  <div id="vm-status-txt">Hold to speak</div>
+  <button id="vm-ptt">🎤</button>
+  <div id="vm-hint">Hold button • Release to send</div>
   <div id="vm-transcript"></div>
-  <div id="vm-hint"></div>
+  <button id="vm-close" onclick="VM.stop()">✕ Exit Voice</button>
 </div>
 <div class="toast" id="toast"></div>
 <script>
@@ -2580,51 +2584,39 @@ async function speakResponse(text) {
     });
     if (!r.ok) return;
     const blob = await r.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.onended = () => URL.revokeObjectURL(url);
-    audio.play().catch(() => {});
+    // Use Web Audio API to bypass iOS silent/ringer switch
+    const arrayBuf = await blob.arrayBuffer();
+    const ctx = new AudioContext();
+    if (ctx.state !== 'running') { try { await ctx.resume(); } catch(e){} }
+    const audioBuf = await ctx.decodeAudioData(arrayBuf.slice(0));
+    const src = ctx.createBufferSource();
+    src.buffer = audioBuf;
+    src.connect(ctx.destination);
+    src.onended = () => ctx.close().catch(()=>{});
+    src.start(0);
   } catch(e) { /* silent — TTS is best-effort */ }
 }
 
 
-// ── Full Voice Mode ───────────────────────────────────────────────────────────
+// ── Voice Mode (Push-to-Talk) ──────────────────────────────────────────────
 const VM = (() => {
   let active = false;
-  let vmState = 'idle'; // idle | listening | thinking | speaking
-  let micStream = null, audioCtx = null, micAnalyser = null;
+  let vmState = 'idle'; // idle | ready | recording | thinking | speaking
+  let micStream = null, audioCtx = null;
   let recorder = null, chunks = [];
-  let animId = null, vadTimerId = null;
   let interrupted = false, currentAudio = null;
-
-  // VAD tuning
-  const THRESH      = 0.018;  // RMS threshold for speech
-  const START_MS    = 280;    // must exceed threshold for this long to start
-  const SILENCE_MS  = 2500;   // silence after speech = done talking
-  const MAX_REC_MS  = 28000;
-  let speechActive = false, speechT0 = 0, lastSpeechT = 0;
-  let vadGeneration = 0;      // prevents stale loops
-
-  // Canvas hue targets
-  const HUE = {idle:220, listening:220, thinking:45, speaking:155};
-  let canvasHue = 220, canvasPhase = 0;
 
   // ── DOM helpers ───────────────────────────────────────────────────────────
   const $overlay   = () => document.getElementById('vm-overlay');
-  const $canvas    = () => document.getElementById('vm-canvas');
   const $statusTxt = () => document.getElementById('vm-status-txt');
   const $transcript= () => document.getElementById('vm-transcript');
   const $hint      = () => document.getElementById('vm-hint');
   const $vmBtn     = () => document.getElementById('vm-btn');
+  const $ptt       = () => document.getElementById('vm-ptt');
 
-  const STATUS = {idle:'Tap to begin', listening:'Listening…', thinking:'Thinking…', speaking:'Speaking'};
-  const HINT   = {idle:'', listening:'', thinking:'', speaking:'Tap orb to interrupt'};
-
-  function _setState(s) {
-    vmState = s;
-    if ($statusTxt()) $statusTxt().textContent = STATUS[s] || s;
-    if ($hint())      $hint().textContent      = HINT[s]   || '';
-  }
+  function _setStatus(txt) { if ($statusTxt()) $statusTxt().textContent = txt; }
+  function _setTranscript(txt) { if ($transcript()) $transcript().textContent = txt; }
+  function _setHint(txt) { if ($hint()) $hint().textContent = txt; }
 
   // ── Public API ────────────────────────────────────────────────────────────
   function toggle() { active ? stop() : start(); }
@@ -2633,158 +2625,144 @@ const VM = (() => {
     if (active) return;
     try {
       micStream = await navigator.mediaDevices.getUserMedia({
-        audio: {echoCancellation:true, noiseSuppression:true, sampleRate:16000}
+        audio: {echoCancellation: true, noiseSuppression: true, sampleRate: 16000}
       });
     } catch(e) { showToast('Microphone access denied'); return; }
 
     active = true; interrupted = false;
-    audioCtx  = new AudioContext();
-    micAnalyser = audioCtx.createAnalyser();
-    micAnalyser.fftSize = 256;
-    audioCtx.createMediaStreamSource(micStream).connect(micAnalyser);
+    // Create AudioContext on user gesture so iOS allows audio output
+    audioCtx = new AudioContext();
 
     $overlay().classList.add('active');
     if ($vmBtn()) $vmBtn().classList.add('active');
-    _setState('idle');
-    _drawOrb();
-    // Brief pause so UI renders, then start listening
-    setTimeout(_startListening, 400);
+    vmState = 'ready';
+    _setStatus('Hold to speak');
+    _setHint('Hold button • Release to send');
+    _setTranscript('');
+    console.log('[VM] Voice mode started');
   }
 
   function stop() {
     if (!active) return;
     active = false; interrupted = true;
-    vadGeneration++;
-    clearTimeout(vadTimerId);
-    cancelAnimationFrame(animId);
-    if (currentAudio) { try { currentAudio.pause(); } catch(e){} currentAudio = null; }
-    if (recorder && recorder.state !== 'inactive') try { recorder.stop(); } catch(e){}
+    _stopRecording();
+    if (currentAudio) { try { currentAudio.stop(); } catch(e){} currentAudio = null; }
     if (micStream) micStream.getTracks().forEach(t => t.stop());
-    if (audioCtx)  audioCtx.close().catch(()=>{});
+    if (audioCtx) audioCtx.close().catch(()=>{});
     $overlay().classList.remove('active');
     if ($vmBtn()) $vmBtn().classList.remove('active');
-    vmState = 'idle'; micStream = null; audioCtx = null; micAnalyser = null;
-    recorder = null; chunks = []; speechActive = false;
+    vmState = 'idle'; micStream = null; audioCtx = null; recorder = null; chunks = [];
   }
 
-  // ── Interrupt (tap orb while speaking) ───────────────────────────────────
   function interrupt() {
     if (vmState !== 'speaking' && vmState !== 'thinking') return;
     interrupted = true;
-    if (currentAudio) { try { currentAudio.pause(); } catch(e){} currentAudio = null; }
-    if ($transcript()) $transcript().textContent = '';
-    setTimeout(() => { if (active) _startListening(); }, 200);
+    if (currentAudio) { try { currentAudio.stop(); } catch(e){} currentAudio = null; }
+    _goReady();
   }
 
-  // ── VAD + Recording ───────────────────────────────────────────────────────
-  function _startListening() {
-    if (!active) return;
-    _setState('listening');
-    interrupted = false; speechActive = false; speechT0 = 0;
-    lastSpeechT = Date.now(); chunks = [];
-
+  // ── Push-to-Talk recording ────────────────────────────────────────────────
+  function _startRecording() {
+    if (!active || vmState === 'recording') return;
+    chunks = [];
     const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
                  ? 'audio/webm;codecs=opus' : 'audio/webm';
     recorder = new MediaRecorder(micStream, {mimeType: mime});
     recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
     recorder.start(40);
-
-    const gen = ++vadGeneration;
-    _vadLoop(gen);
+    vmState = 'recording';
+    const ptt = $ptt();
+    if (ptt) ptt.classList.add('recording');
+    _setStatus('Recording…');
+    _setHint('Release to send');
+    _setTranscript('🎤 Listening…');
+    console.log('[VM] PTT: recording started');
   }
 
-  function _getRMS() {
-    if (!micAnalyser) return 0;
-    const d = new Uint8Array(micAnalyser.frequencyBinCount);
-    micAnalyser.getByteTimeDomainData(d);
-    let sum = 0;
-    for (let i = 0; i < d.length; i++) { const v = (d[i]-128)/128; sum += v*v; }
-    return Math.sqrt(sum / d.length);
-  }
-
-  function _vadLoop(gen) {
-    if (!active || gen !== vadGeneration || vmState !== 'listening') return;
-    const rms = _getRMS(), now = Date.now();
-
-    if (rms > THRESH) {
-      lastSpeechT = now;
-      if (!speechActive) {
-        if (!speechT0) speechT0 = now;
-        if (now - speechT0 >= START_MS) {
-          speechActive = true;
-          if ($transcript()) $transcript().textContent = '🎤 …';
-        }
-      } else if (now - speechT0 > MAX_REC_MS) {
-        _onSpeechEnd(gen); return;
-      }
-    } else {
-      speechT0 = 0;
-      if (speechActive && (now - lastSpeechT) >= SILENCE_MS) {
-        _onSpeechEnd(gen); return;
-      }
+  function _stopRecording() {
+    if (recorder && recorder.state !== 'inactive') {
+      try { recorder.stop(); } catch(e){}
     }
-    vadTimerId = setTimeout(() => _vadLoop(gen), 40);
+    const ptt = $ptt();
+    if (ptt) ptt.classList.remove('recording');
   }
 
-  async function _onSpeechEnd(gen) {
-    if (!active || gen !== vadGeneration) return;
-    clearTimeout(vadTimerId);
-    if (!recorder || recorder.state === 'inactive') { _startListening(); return; }
+  async function _onRelease() {
+    if (!active || vmState !== 'recording') return;
+    console.log('[VM] PTT: released — stopping recording');
+    _setStatus('Processing…');
+    _setHint('');
 
     const blob = await new Promise(resolve => {
-      recorder.onstop = () => resolve(new Blob(chunks, {type:'audio/webm'}));
-      recorder.stop();
+      recorder.onstop = () => resolve(new Blob(chunks, {type: 'audio/webm'}));
+      _stopRecording();
     });
 
-    if (!active || blob.size < 1500) { if (active) _startListening(); return; }
+    console.log('[VM] Blob size: ' + blob.size + ' bytes');
+    if (!active || blob.size < 500) {
+      console.warn('[VM] Audio too short, ignoring');
+      _goReady(); return;
+    }
 
-    _setState('thinking');
-    if ($transcript()) $transcript().textContent = 'Transcribing…';
+    vmState = 'thinking';
+    _setStatus('Transcribing…');
+    _setTranscript('');
 
     try {
       const fd = new FormData();
       fd.append('audio', blob, 'audio.webm');
-      const tr = await bFetch('/voice/transcribe', {method:'POST', body:fd});
+      const tr = await bFetch('/voice/transcribe', {method: 'POST', body: fd});
       const td = await tr.json();
       const text = (td.text || '').trim();
-      if (!text || text.length < 2) { if (active) _startListening(); return; }
-      if ($transcript()) $transcript().textContent = `"${text}"`;
+      console.log('[VM] Transcript: "' + text + '"');
+      if (!text || text.length < 2) { _goReady(); return; }
+      _setTranscript('"' + text + '"');
       await _processText(text);
     } catch(e) {
-      console.error('[VM] transcribe error', e);
-      if (active) _startListening();
+      console.error('[VM] Transcribe error:', e);
+      _goReady();
     }
+  }
+
+  function _goReady() {
+    if (!active) return;
+    vmState = 'ready'; interrupted = false;
+    _setStatus('Hold to speak');
+    _setHint('Hold button • Release to send');
+    const ptt = $ptt();
+    if (ptt) ptt.classList.remove('recording');
   }
 
   // ── Chat ──────────────────────────────────────────────────────────────────
   async function _processText(text) {
     if (!active) return;
-    _setState('thinking');
+    vmState = 'thinking';
+    _setStatus('Thinking…');
     try {
-      msgs.push({role:'user', content:text});
+      msgs.push({role: 'user', content: text});
       addMsg('user', render(text));
       saveConv(); renderHist();
 
       let data = await callAPI(msgs);
       if (data.stop_reason === 'tool_use') {
-        data = await callAPI([...msgs, {role:'assistant', content:data.content}]);
+        data = await callAPI([...msgs, {role: 'assistant', content: data.content}]);
       }
       let finalText = '';
       for (const b of (data.content || [])) { if (b.type === 'text') finalText += b.text; }
       finalText = finalText || 'Sorry, something went wrong.';
 
-      msgs.push({role:'assistant', content:finalText});
+      msgs.push({role: 'assistant', content: finalText});
       addMsg('ai', render(finalText));
       saveConv(); renderHist();
 
       await _speakAll(finalText);
     } catch(e) {
-      console.error('[VM] chat error', e);
-      if (active) _startListening();
+      console.error('[VM] Chat error:', e);
+      _goReady();
     }
   }
 
-  // ── TTS — sentence-by-sentence with parallel fetch ────────────────────────
+  // ── TTS ───────────────────────────────────────────────────────────────────
   function _splitSentences(text) {
     const clean = text.replace(/\n+/g, ' ').replace(/\*+/g, '').replace(/#+/g, '').trim();
     const parts = clean.split(/(?<=[.!?])\s+/);
@@ -2799,124 +2777,88 @@ const VM = (() => {
 
   async function _speakAll(text) {
     if (!active) return;
-    _setState('speaking'); interrupted = false;
+    vmState = 'speaking'; interrupted = false;
+    _setStatus('Speaking…');
+    _setHint('Tap button to interrupt');
     const sents = _splitSentences(text);
+    console.log('[VM] TTS: ' + sents.length + ' sentences');
 
-    // Fire all TTS requests in parallel
-    const fetches = sents.map(s =>
+    // Fetch all as ArrayBuffers in parallel
+    const fetches = sents.map((s, i) =>
       bFetch('/voice/tts', {
-        method:'POST', headers:{'Content-Type':'application/json'},
+        method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({text: s})
-      }).then(r => r.ok ? r.blob() : null).catch(() => null)
+      })
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+      .catch(e => { console.error('[VM] TTS fetch[' + i + '] failed:', e); return null; })
     );
 
     for (let i = 0; i < fetches.length; i++) {
       if (!active || interrupted) break;
-      const blob = await fetches[i];
-      if (!blob || !active || interrupted) break;
-      await _playBlob(blob);
+      const arrayBuf = await fetches[i];
+      if (!arrayBuf || !active || interrupted) break;
+      await _playArrayBuf(arrayBuf, i);
     }
 
-    if (active && !interrupted) _startListening();
+    if (active && !interrupted) _goReady();
   }
 
-  function _playBlob(blob) {
-    return new Promise(resolve => {
-      if (!active || interrupted) { resolve(); return; }
-      const url = URL.createObjectURL(blob);
-      let done = false;
-      currentAudio = new Audio(url);
-      currentAudio.onended  = () => { done=true; URL.revokeObjectURL(url); currentAudio=null; resolve(); };
-      currentAudio.onerror  = () => { done=true; URL.revokeObjectURL(url); currentAudio=null; resolve(); };
-      currentAudio.play().catch(() => { done=true; resolve(); });
+  async function _playArrayBuf(arrayBuf, idx) {
+    if (!active || interrupted) return;
+    console.log('[VM] Playing sentence ' + idx + ' (' + arrayBuf.byteLength + ' bytes)');
 
-      // Interrupt monitor — detect mic input while speaking
-      const checkInterrupt = () => {
+    // Resume AudioContext — required on iOS after any inactivity
+    if (audioCtx.state !== 'running') {
+      console.log('[VM] AudioContext ' + audioCtx.state + ' — resuming');
+      try { await audioCtx.resume(); } catch(e) { console.error('[VM] resume() failed:', e); }
+    }
+    if (!active || interrupted) return;
+
+    let audioBuf;
+    try {
+      audioBuf = await audioCtx.decodeAudioData(arrayBuf.slice(0));
+      console.log('[VM] Decoded: ' + audioBuf.duration.toFixed(2) + 's');
+    } catch(e) {
+      console.error('[VM] decodeAudioData[' + idx + '] failed:', e); return;
+    }
+    if (!active || interrupted) return;
+
+    await new Promise(resolve => {
+      const src = audioCtx.createBufferSource();
+      src.buffer = audioBuf;
+      src.connect(audioCtx.destination);
+      currentAudio = src;
+      let done = false;
+      src.onended = () => { if (!done) { done = true; currentAudio = null; resolve(); } };
+      src.start(0);
+      console.log('[VM] src.start() sentence ' + idx);
+      // Poll for interrupted flag
+      const poll = () => {
         if (done || !active) return;
-        if (interrupted) { done=true; resolve(); return; }
-        if (_getRMS() > THRESH * 3.5) {
-          interrupted = true;
-          try { currentAudio.pause(); } catch(e){}
-          URL.revokeObjectURL(url); currentAudio = null;
-          done = true; resolve();
-          if ($transcript()) $transcript().textContent = '';
-          setTimeout(() => { if (active) _startListening(); }, 250);
-          return;
-        }
-        setTimeout(checkInterrupt, 80);
+        if (interrupted) { try { src.stop(); } catch(e){} done = true; currentAudio = null; resolve(); return; }
+        setTimeout(poll, 80);
       };
-      checkInterrupt();
+      poll();
     });
   }
 
-  // ── Canvas Orb ────────────────────────────────────────────────────────────
-  function _drawOrb() {
-    const cvs = $canvas();
-    if (!cvs) return;
-    const ctx = cvs.getContext('2d');
-    const W = cvs.width, H = cvs.height, cx = W/2, cy = H/2, baseR = 72;
-
-    function frame() {
-      if (!active) return;
-      animId = requestAnimationFrame(frame);
-      ctx.clearRect(0, 0, W, H);
-
-      // Smooth hue transition
-      const targetHue = HUE[vmState] || 220;
-      canvasHue += (targetHue - canvasHue) * 0.07;
-      canvasPhase += vmState === 'thinking' ? 0.07 : 0.03;
-
-      // Frequency ring
-      let freqData = null;
-      if (micAnalyser && (vmState === 'listening' || vmState === 'speaking')) {
-        freqData = new Uint8Array(micAnalyser.frequencyBinCount);
-        micAnalyser.getByteFrequencyData(freqData);
-      }
-
-      const bars = 36;
-      for (let i = 0; i < bars; i++) {
-        const angle = (i / bars) * Math.PI * 2 - Math.PI / 2;
-        let barLen = 5;
-        if (vmState === 'listening' && freqData) {
-          barLen = (freqData[Math.floor(i * freqData.length / bars / 3)] / 255) * 42 + 4;
-        } else if (vmState === 'speaking') {
-          barLen = 10 + Math.sin(canvasPhase * 2.5 + i * 0.45) * 22 + 10;
-        } else if (vmState === 'thinking') {
-          const inArc = ((i / bars) - (canvasPhase / (Math.PI*2)) % 1 + 1) % 1;
-          barLen = inArc < 0.45 ? 6 + inArc * 30 : 4;
-        }
-        const alpha = vmState === 'idle' ? 0.15 : 0.55 + (barLen / 60) * 0.45;
-        ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(angle)*(baseR+5),   cy + Math.sin(angle)*(baseR+5));
-        ctx.lineTo(cx + Math.cos(angle)*(baseR+5+barLen), cy + Math.sin(angle)*(baseR+5+barLen));
-        ctx.strokeStyle = `hsla(${canvasHue},78%,65%,${alpha})`;
-        ctx.lineWidth = 2.8; ctx.lineCap = 'round'; ctx.stroke();
-      }
-
-      // Orb pulse
-      const pulse = 1 + Math.sin(canvasPhase) * (vmState === 'thinking' ? 0.06 : 0.03);
-      const r = baseR * pulse;
-      const grd = ctx.createRadialGradient(cx - r*0.25, cy - r*0.3, 0, cx, cy, r);
-      grd.addColorStop(0,   `hsla(${canvasHue},70%,82%,0.95)`);
-      grd.addColorStop(0.45,`hsla(${canvasHue},65%,58%,0.75)`);
-      grd.addColorStop(1,   `hsla(${canvasHue},55%,42%,0)`);
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-      ctx.fillStyle = grd; ctx.fill();
-
-      // Inner specular
-      const sg = ctx.createRadialGradient(cx-r*0.3, cy-r*0.3, 0, cx, cy, r*0.6);
-      sg.addColorStop(0, `hsla(${canvasHue},90%,95%,0.35)`);
-      sg.addColorStop(1, 'transparent');
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-      ctx.fillStyle = sg; ctx.fill();
-    }
-    frame();
-  }
-
-  // Init canvas click for interrupt
+  // ── Init PTT button events ────────────────────────────────────────────────
   function _init() {
-    const cvs = $canvas();
-    if (cvs) cvs.addEventListener('click', interrupt);
+    const ptt = $ptt();
+    if (!ptt) return;
+
+    // Mouse events
+    ptt.addEventListener('mousedown', e => { e.preventDefault(); if (active && vmState === 'ready') _startRecording(); });
+    ptt.addEventListener('mouseup',   e => { e.preventDefault(); if (active) _onRelease(); });
+    ptt.addEventListener('mouseleave',e => { if (active && vmState === 'recording') _onRelease(); });
+
+    // Touch events (mobile/iOS)
+    ptt.addEventListener('touchstart', e => { e.preventDefault(); if (active && vmState === 'ready') _startRecording(); }, {passive: false});
+    ptt.addEventListener('touchend',   e => { e.preventDefault(); if (active) _onRelease(); }, {passive: false});
+    ptt.addEventListener('touchcancel',e => { e.preventDefault(); if (active && vmState === 'recording') _onRelease(); }, {passive: false});
+
+    // Tap button while speaking = interrupt
+    ptt.addEventListener('click', () => { if (active && (vmState === 'speaking' || vmState === 'thinking')) interrupt(); });
   }
 
   return { toggle, start, stop, interrupt, init: _init,
