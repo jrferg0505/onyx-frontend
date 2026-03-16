@@ -477,21 +477,56 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 .lights-custom-row input[type=color]{width:42px;height:42px;border:none;border-radius:50%;cursor:pointer;padding:0;background:none;}
 
 /* ── Voice Mode ──────────────────────────────────────────────────────────── */
-#vm-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px;}
+#vm-overlay{position:fixed;inset:0;z-index:9999;background:#08080e;display:none;flex-direction:column;align-items:center;justify-content:space-between;padding:52px 24px 36px;overflow:hidden;}
 #vm-overlay.active{display:flex;}
-#vm-status-txt{font-size:20px;letter-spacing:0.2px;color:var(--t2);font-weight:500;}
-#vm-transcript{font-size:14px;color:var(--t3);max-width:320px;text-align:center;min-height:44px;padding:0 24px;line-height:1.6;}
-#vm-hint{font-size:13px;color:var(--t3);opacity:0.6;min-height:18px;}
-/* Push-to-talk button */
-#vm-ptt{width:140px;height:140px;border-radius:50%;background:var(--g2);border:3px solid rgba(255,255,255,0.08);color:var(--t1);font-size:48px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s,background .15s,box-shadow .15s;user-select:none;-webkit-user-select:none;touch-action:none;}
-#vm-ptt:hover{background:var(--g3);}
-#vm-ptt.recording{background:rgba(239,68,68,0.25);border-color:rgba(239,68,68,0.7);box-shadow:0 0 0 12px rgba(239,68,68,0.12),0 0 0 24px rgba(239,68,68,0.06);transform:scale(1.08);animation:vm-pulse 1s ease-in-out infinite;}
-@keyframes vm-pulse{0%,100%{box-shadow:0 0 0 12px rgba(239,68,68,0.12),0 0 0 24px rgba(239,68,68,0.06);}50%{box-shadow:0 0 0 18px rgba(239,68,68,0.18),0 0 0 36px rgba(239,68,68,0.04);}}
-#vm-close{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);background:var(--g2);border:none;color:var(--t2);font-size:15px;padding:12px 32px;border-radius:30px;cursor:pointer;font-family:var(--font);transition:background .15s;white-space:nowrap;}
-#vm-close:hover{background:var(--g3);}
+/* Subtle background radial */
+#vm-overlay::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 30%,rgba(109,40,217,0.12) 0%,transparent 70%);pointer-events:none;transition:opacity .6s;}
+#vm-overlay.vm-speaking::before{background:radial-gradient(ellipse 70% 50% at 50% 30%,rgba(37,99,235,0.14) 0%,transparent 70%);}
+#vm-overlay.vm-recording::before{background:radial-gradient(ellipse 70% 50% at 50% 30%,rgba(185,28,28,0.14) 0%,transparent 70%);}
+
+/* Orb */
+#vm-orb-wrap{position:relative;width:220px;height:220px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+#vm-orb-ring,#vm-orb-ring2{position:absolute;border-radius:50%;border:1px solid rgba(139,92,246,0.18);pointer-events:none;}
+#vm-orb-ring{width:100%;height:100%;animation:vm-ring 3.5s ease-in-out infinite;}
+#vm-orb-ring2{width:76%;height:76%;animation:vm-ring 3.5s ease-in-out infinite .8s;}
+#vm-orb{width:132px;height:132px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#c4b5fd 0%,#7c3aed 52%,#1e1b4b 100%);box-shadow:0 0 48px rgba(124,58,237,0.38),0 0 96px rgba(124,58,237,0.14);position:relative;z-index:1;transition:background .5s,box-shadow .5s;animation:vm-orb-idle 4s ease-in-out infinite;}
+
+/* Orb states via overlay class */
+#vm-overlay.vm-recording #vm-orb{background:radial-gradient(circle at 38% 32%,#fca5a5 0%,#dc2626 52%,#450a0a 100%);box-shadow:0 0 56px rgba(220,38,38,0.55),0 0 110px rgba(220,38,38,0.22);animation:vm-orb-record 1.3s ease-in-out infinite;}
+#vm-overlay.vm-recording #vm-orb-ring,#vm-overlay.vm-recording #vm-orb-ring2{border-color:rgba(220,38,38,0.35);animation:vm-ring-expand 1.3s ease-out infinite;}
+#vm-overlay.vm-recording #vm-orb-ring2{animation-delay:.3s;}
+#vm-overlay.vm-thinking #vm-orb{background:radial-gradient(circle at 38% 32%,#e9d5ff 0%,#9333ea 52%,#2e1065 100%);box-shadow:0 0 64px rgba(147,51,234,0.55),0 0 128px rgba(147,51,234,0.2);animation:vm-orb-think 2s ease-in-out infinite;}
+#vm-overlay.vm-speaking #vm-orb{background:radial-gradient(circle at 38% 32%,#bfdbfe 0%,#3b82f6 52%,#1e3a8a 100%);box-shadow:0 0 72px rgba(59,130,246,0.65),0 0 140px rgba(59,130,246,0.25);animation:vm-orb-speak 1.6s ease-in-out infinite;}
+#vm-overlay.vm-speaking #vm-orb-ring,#vm-overlay.vm-speaking #vm-orb-ring2{border-color:rgba(59,130,246,0.22);}
+
+@keyframes vm-ring{0%,100%{transform:scale(1);opacity:.7;}50%{transform:scale(1.04);opacity:1;}}
+@keyframes vm-ring-expand{0%{transform:scale(1);opacity:.8;}100%{transform:scale(1.45);opacity:0;}}
+@keyframes vm-orb-idle{0%,100%{transform:scale(1);}50%{transform:scale(1.035);}}
+@keyframes vm-orb-record{0%,100%{transform:scale(1);}50%{transform:scale(1.07);}}
+@keyframes vm-orb-think{0%,100%{transform:scale(1) rotate(0deg);}50%{transform:scale(1.06) rotate(180deg);}}
+@keyframes vm-orb-speak{0%,100%{transform:scale(1);}40%{transform:scale(1.08);}70%{transform:scale(1.03);}}
+
+/* Middle section */
+#vm-mid{display:flex;flex-direction:column;align-items:center;gap:12px;flex:1;justify-content:center;width:100%;max-width:360px;}
+#vm-status-txt{font-size:22px;font-weight:500;letter-spacing:-.3px;color:rgba(255,255,255,0.92);text-align:center;}
+/* Transcript card */
+#vm-card{background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.07);border-radius:18px;padding:14px 18px;width:100%;min-height:60px;display:flex;align-items:center;justify-content:center;transition:opacity .3s;}
+#vm-card:empty,#vm-card:has(#vm-transcript:empty){opacity:0;}
+#vm-transcript{font-size:14px;color:rgba(255,255,255,0.55);text-align:center;line-height:1.65;width:100%;}
+
+/* PTT section */
+#vm-ptt-section{display:flex;flex-direction:column;align-items:center;gap:14px;}
+#vm-ptt{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.13);color:rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s,background .15s,box-shadow .15s;user-select:none;-webkit-user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent;}
+#vm-ptt svg{width:28px;height:28px;pointer-events:none;}
+#vm-ptt.recording{transform:scale(.93);background:rgba(220,38,38,0.22);border-color:rgba(220,38,38,0.55);box-shadow:0 0 0 8px rgba(220,38,38,0.09),0 0 0 16px rgba(220,38,38,0.04);}
+#vm-hint{font-size:12px;color:rgba(255,255,255,0.28);letter-spacing:.4px;}
+/* Exit */
+#vm-close{background:transparent;border:1px solid rgba(255,255,255,0.09);color:rgba(255,255,255,0.28);font-size:13px;padding:7px 22px;border-radius:20px;cursor:pointer;font-family:var(--font);transition:color .15s,border-color .15s;white-space:nowrap;letter-spacing:.3px;}
+#vm-close:hover{color:rgba(255,255,255,0.55);border-color:rgba(255,255,255,0.2);}
+/* Chat bar vm button */
 #vm-btn{width:32px;height:32px;border-radius:50%;background:var(--g2);border:none;color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s,color .15s;}
 #vm-btn:hover{background:var(--g3);}
-#vm-btn.active{background:rgba(59,130,246,0.2);color:#60a5fa;}
+#vm-btn.active{background:rgba(124,58,237,0.2);color:#a78bfa;}
 
 </style>
 <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
@@ -1045,11 +1080,22 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 
 <!-- VOICE MODE OVERLAY -->
 <div id="vm-overlay">
-  <div id="vm-status-txt">Hold to speak</div>
-  <button id="vm-ptt">🎤</button>
-  <div id="vm-hint">Hold button • Release to send</div>
-  <div id="vm-transcript"></div>
-  <button id="vm-close" onclick="VM.stop()">✕ Exit Voice</button>
+  <div id="vm-orb-wrap">
+    <div id="vm-orb-ring"></div>
+    <div id="vm-orb-ring2"></div>
+    <div id="vm-orb"></div>
+  </div>
+  <div id="vm-mid">
+    <div id="vm-status-txt">Ready</div>
+    <div id="vm-card"><div id="vm-transcript"></div></div>
+  </div>
+  <div id="vm-ptt-section">
+    <button id="vm-ptt" aria-label="Hold to speak">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
+    <div id="vm-hint">Hold to speak</div>
+  </div>
+  <button id="vm-close" onclick="VM.stop()">Exit Voice Mode</button>
 </div>
 <div class="toast" id="toast"></div>
 <script>
@@ -2606,17 +2652,24 @@ const VM = (() => {
   let recorder = null, chunks = [];
   let interrupted = false, currentAudio = null;
 
-  // ── DOM helpers ───────────────────────────────────────────────────────────
-  const $overlay   = () => document.getElementById('vm-overlay');
-  const $statusTxt = () => document.getElementById('vm-status-txt');
-  const $transcript= () => document.getElementById('vm-transcript');
-  const $hint      = () => document.getElementById('vm-hint');
-  const $vmBtn     = () => document.getElementById('vm-btn');
-  const $ptt       = () => document.getElementById('vm-ptt');
+  // ── DOM ───────────────────────────────────────────────────────────────────
+  const $overlay    = () => document.getElementById('vm-overlay');
+  const $statusTxt  = () => document.getElementById('vm-status-txt');
+  const $transcript = () => document.getElementById('vm-transcript');
+  const $hint       = () => document.getElementById('vm-hint');
+  const $vmBtn      = () => document.getElementById('vm-btn');
+  const $ptt        = () => document.getElementById('vm-ptt');
 
-  function _setStatus(txt) { if ($statusTxt()) $statusTxt().textContent = txt; }
-  function _setTranscript(txt) { if ($transcript()) $transcript().textContent = txt; }
-  function _setHint(txt) { if ($hint()) $hint().textContent = txt; }
+  // Apply state class to overlay — drives all CSS animations
+  function _setState(s) {
+    vmState = s;
+    const ov = $overlay(); if (!ov) return;
+    ov.classList.remove('vm-idle','vm-ready','vm-recording','vm-thinking','vm-speaking');
+    ov.classList.add('vm-' + s);
+  }
+  function _setStatus(t)     { const el=$statusTxt();  if(el) el.textContent=t; }
+  function _setTranscript(t) { const el=$transcript(); if(el) el.textContent=t; }
+  function _setHint(t)       { const el=$hint();        if(el) el.textContent=t; }
 
   // ── Public API ────────────────────────────────────────────────────────────
   function toggle() { active ? stop() : start(); }
@@ -2625,31 +2678,31 @@ const VM = (() => {
     if (active) return;
     try {
       micStream = await navigator.mediaDevices.getUserMedia({
-        audio: {echoCancellation: true, noiseSuppression: true, sampleRate: 16000}
+        audio: {echoCancellation:true, noiseSuppression:true, sampleRate:16000}
       });
     } catch(e) { showToast('Microphone access denied'); return; }
 
     active = true; interrupted = false;
-    // Create AudioContext on user gesture so iOS allows audio output
-    audioCtx = new AudioContext();
+    audioCtx = new AudioContext(); // created on user gesture — unlocks iOS audio output
 
     $overlay().classList.add('active');
     if ($vmBtn()) $vmBtn().classList.add('active');
-    vmState = 'ready';
+    _setState('ready');
     _setStatus('Hold to speak');
-    _setHint('Hold button • Release to send');
+    _setHint('Hold • Release to send');
     _setTranscript('');
-    console.log('[VM] Voice mode started');
+    console.log('[VM] started');
   }
 
   function stop() {
     if (!active) return;
     active = false; interrupted = true;
-    _stopRecording();
+    _stopRecorder();
     if (currentAudio) { try { currentAudio.stop(); } catch(e){} currentAudio = null; }
     if (micStream) micStream.getTracks().forEach(t => t.stop());
-    if (audioCtx) audioCtx.close().catch(()=>{});
-    $overlay().classList.remove('active');
+    if (audioCtx)  audioCtx.close().catch(()=>{});
+    const ov = $overlay();
+    if (ov) { ov.classList.remove('active','vm-idle','vm-ready','vm-recording','vm-thinking','vm-speaking'); }
     if ($vmBtn()) $vmBtn().classList.remove('active');
     vmState = 'idle'; micStream = null; audioCtx = null; recorder = null; chunks = [];
   }
@@ -2661,7 +2714,7 @@ const VM = (() => {
     _goReady();
   }
 
-  // ── Push-to-Talk recording ────────────────────────────────────────────────
+  // ── Recording ─────────────────────────────────────────────────────────────
   function _startRecording() {
     if (!active || vmState === 'recording') return;
     chunks = [];
@@ -2670,195 +2723,178 @@ const VM = (() => {
     recorder = new MediaRecorder(micStream, {mimeType: mime});
     recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
     recorder.start(40);
-    vmState = 'recording';
-    const ptt = $ptt();
-    if (ptt) ptt.classList.add('recording');
-    _setStatus('Recording…');
+    _setState('recording');
+    if ($ptt()) $ptt().classList.add('recording');
+    _setStatus('Listening…');
     _setHint('Release to send');
-    _setTranscript('🎤 Listening…');
-    console.log('[VM] PTT: recording started');
+    _setTranscript('');
+    console.log('[VM] recording started');
   }
 
-  function _stopRecording() {
-    if (recorder && recorder.state !== 'inactive') {
-      try { recorder.stop(); } catch(e){}
-    }
-    const ptt = $ptt();
-    if (ptt) ptt.classList.remove('recording');
+  function _stopRecorder() {
+    if (recorder && recorder.state !== 'inactive') try { recorder.stop(); } catch(e){}
+    if ($ptt()) $ptt().classList.remove('recording');
   }
 
   async function _onRelease() {
     if (!active || vmState !== 'recording') return;
-    console.log('[VM] PTT: released — stopping recording');
-    _setStatus('Processing…');
+    _setState('thinking');
+    _setStatus('Thinking…');
     _setHint('');
 
     const blob = await new Promise(resolve => {
-      recorder.onstop = () => resolve(new Blob(chunks, {type: 'audio/webm'}));
-      _stopRecording();
+      recorder.onstop = () => resolve(new Blob(chunks, {type:'audio/webm'}));
+      _stopRecorder();
     });
 
-    console.log('[VM] Blob size: ' + blob.size + ' bytes');
-    if (!active || blob.size < 500) {
-      console.warn('[VM] Audio too short, ignoring');
-      _goReady(); return;
-    }
+    console.log('[VM] blob=' + blob.size + ' bytes');
+    if (!active || blob.size < 500) { _goReady(); return; }
 
-    vmState = 'thinking';
     _setStatus('Transcribing…');
     _setTranscript('');
 
     try {
       const fd = new FormData();
       fd.append('audio', blob, 'audio.webm');
-      const tr = await bFetch('/voice/transcribe', {method: 'POST', body: fd});
+      const tr = await bFetch('/voice/transcribe', {method:'POST', body:fd});
       const td = await tr.json();
       const text = (td.text || '').trim();
-      console.log('[VM] Transcript: "' + text + '"');
+      console.log('[VM] transcript: "' + text + '"');
       if (!text || text.length < 2) { _goReady(); return; }
       _setTranscript('"' + text + '"');
       await _processText(text);
     } catch(e) {
-      console.error('[VM] Transcribe error:', e);
+      console.error('[VM] transcribe error:', e);
       _goReady();
     }
   }
 
   function _goReady() {
     if (!active) return;
-    vmState = 'ready'; interrupted = false;
+    interrupted = false;
+    _setState('ready');
     _setStatus('Hold to speak');
-    _setHint('Hold button • Release to send');
-    const ptt = $ptt();
-    if (ptt) ptt.classList.remove('recording');
+    _setHint('Hold • Release to send');
   }
 
   // ── Chat ──────────────────────────────────────────────────────────────────
   async function _processText(text) {
     if (!active) return;
-    vmState = 'thinking';
+    _setState('thinking');
     _setStatus('Thinking…');
     try {
-      msgs.push({role: 'user', content: text});
+      msgs.push({role:'user', content:text});
       addMsg('user', render(text));
       saveConv(); renderHist();
 
       let data = await callAPI(msgs);
       if (data.stop_reason === 'tool_use') {
-        data = await callAPI([...msgs, {role: 'assistant', content: data.content}]);
+        data = await callAPI([...msgs, {role:'assistant', content:data.content}]);
       }
       let finalText = '';
-      for (const b of (data.content || [])) { if (b.type === 'text') finalText += b.text; }
+      for (const b of (data.content||[])) { if (b.type==='text') finalText += b.text; }
       finalText = finalText || 'Sorry, something went wrong.';
 
-      msgs.push({role: 'assistant', content: finalText});
+      msgs.push({role:'assistant', content:finalText});
       addMsg('ai', render(finalText));
       saveConv(); renderHist();
 
+      // Start TTS pipeline immediately — don't wait for all sentences
       await _speakAll(finalText);
     } catch(e) {
-      console.error('[VM] Chat error:', e);
+      console.error('[VM] chat error:', e);
       _goReady();
     }
   }
 
-  // ── TTS ───────────────────────────────────────────────────────────────────
+  // ── Streaming TTS pipeline ────────────────────────────────────────────────
+  // All sentences are fetched AND decoded in parallel.
+  // Sentence 0 plays as soon as it's decoded; by then sentences 1-N are ready.
+  // Result: near-instant first audio, seamless gapless playback for the rest.
+
   function _splitSentences(text) {
-    const clean = text.replace(/\n+/g, ' ').replace(/\*+/g, '').replace(/#+/g, '').trim();
+    const clean = text.replace(/\n+/g,' ').replace(/\*+/g,'').replace(/#+/g,'').trim();
     const parts = clean.split(/(?<=[.!?])\s+/);
-    const out = []; let cur = '';
+    const out=[]; let cur='';
     for (const p of parts) {
-      cur = cur ? cur + ' ' + p : p;
-      if (cur.length >= 40) { out.push(cur.trim()); cur = ''; }
+      cur = cur ? cur+' '+p : p;
+      if (cur.length >= 42) { out.push(cur.trim()); cur=''; }
     }
     if (cur.trim()) out.push(cur.trim());
-    return out.length ? out : [clean.slice(0, 500)];
+    return out.length ? out : [clean.slice(0,500)];
+  }
+
+  async function _ensureAudioCtx() {
+    if (audioCtx.state !== 'running') {
+      console.log('[VM] AudioContext ' + audioCtx.state + ' — resuming');
+      try { await audioCtx.resume(); } catch(e) { console.error('[VM] resume failed:', e); }
+    }
   }
 
   async function _speakAll(text) {
     if (!active) return;
-    vmState = 'speaking'; interrupted = false;
+    _setState('speaking'); interrupted = false;
     _setStatus('Speaking…');
     _setHint('Tap button to interrupt');
-    const sents = _splitSentences(text);
-    console.log('[VM] TTS: ' + sents.length + ' sentences');
 
-    // Fetch all as ArrayBuffers in parallel
-    const fetches = sents.map((s, i) =>
+    await _ensureAudioCtx();
+
+    const sents = _splitSentences(text);
+    console.log('[VM] TTS pipeline: ' + sents.length + ' sentences, fetching + decoding all in parallel');
+
+    // Fire fetch+decode for ALL sentences simultaneously
+    const prepared = sents.map((s, i) =>
       bFetch('/voice/tts', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
+        method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({text: s})
       })
-      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
-      .catch(e => { console.error('[VM] TTS fetch[' + i + '] failed:', e); return null; })
+      .then(r => { if (!r.ok) throw new Error('HTTP '+r.status); return r.arrayBuffer(); })
+      .then(buf => audioCtx.decodeAudioData(buf.slice(0)))
+      .then(audioBuf => { console.log('[VM] ready['+i+']: '+audioBuf.duration.toFixed(2)+'s'); return audioBuf; })
+      .catch(e => { console.error('[VM] TTS['+i+'] failed:', e); return null; })
     );
 
-    for (let i = 0; i < fetches.length; i++) {
+    // Play in order — each sentence should already be decoded by the time playback reaches it
+    for (let i = 0; i < prepared.length; i++) {
       if (!active || interrupted) break;
-      const arrayBuf = await fetches[i];
-      if (!arrayBuf || !active || interrupted) break;
-      await _playArrayBuf(arrayBuf, i);
+      const audioBuf = await prepared[i];
+      if (!audioBuf || !active || interrupted) break;
+      await _playAudioBuf(audioBuf, i);
     }
 
     if (active && !interrupted) _goReady();
   }
 
-  async function _playArrayBuf(arrayBuf, idx) {
-    if (!active || interrupted) return;
-    console.log('[VM] Playing sentence ' + idx + ' (' + arrayBuf.byteLength + ' bytes)');
-
-    // Resume AudioContext — required on iOS after any inactivity
-    if (audioCtx.state !== 'running') {
-      console.log('[VM] AudioContext ' + audioCtx.state + ' — resuming');
-      try { await audioCtx.resume(); } catch(e) { console.error('[VM] resume() failed:', e); }
-    }
-    if (!active || interrupted) return;
-
-    let audioBuf;
-    try {
-      audioBuf = await audioCtx.decodeAudioData(arrayBuf.slice(0));
-      console.log('[VM] Decoded: ' + audioBuf.duration.toFixed(2) + 's');
-    } catch(e) {
-      console.error('[VM] decodeAudioData[' + idx + '] failed:', e); return;
-    }
-    if (!active || interrupted) return;
-
-    await new Promise(resolve => {
+  function _playAudioBuf(audioBuf, idx) {
+    return new Promise(resolve => {
+      if (!active || interrupted) { resolve(); return; }
+      console.log('[VM] playing[' + idx + ']');
       const src = audioCtx.createBufferSource();
       src.buffer = audioBuf;
       src.connect(audioCtx.destination);
       currentAudio = src;
       let done = false;
-      src.onended = () => { if (!done) { done = true; currentAudio = null; resolve(); } };
+      src.onended = () => { if (!done) { done=true; currentAudio=null; resolve(); } };
       src.start(0);
-      console.log('[VM] src.start() sentence ' + idx);
-      // Poll for interrupted flag
       const poll = () => {
         if (done || !active) return;
-        if (interrupted) { try { src.stop(); } catch(e){} done = true; currentAudio = null; resolve(); return; }
+        if (interrupted) { try{src.stop();}catch(e){} done=true; currentAudio=null; resolve(); return; }
         setTimeout(poll, 80);
       };
       poll();
     });
   }
 
-  // ── Init PTT button events ────────────────────────────────────────────────
+  // ── Init PTT events ───────────────────────────────────────────────────────
   function _init() {
-    const ptt = $ptt();
-    if (!ptt) return;
-
-    // Mouse events
-    ptt.addEventListener('mousedown', e => { e.preventDefault(); if (active && vmState === 'ready') _startRecording(); });
-    ptt.addEventListener('mouseup',   e => { e.preventDefault(); if (active) _onRelease(); });
-    ptt.addEventListener('mouseleave',e => { if (active && vmState === 'recording') _onRelease(); });
-
-    // Touch events (mobile/iOS)
-    ptt.addEventListener('touchstart', e => { e.preventDefault(); if (active && vmState === 'ready') _startRecording(); }, {passive: false});
-    ptt.addEventListener('touchend',   e => { e.preventDefault(); if (active) _onRelease(); }, {passive: false});
-    ptt.addEventListener('touchcancel',e => { e.preventDefault(); if (active && vmState === 'recording') _onRelease(); }, {passive: false});
-
-    // Tap button while speaking = interrupt
-    ptt.addEventListener('click', () => { if (active && (vmState === 'speaking' || vmState === 'thinking')) interrupt(); });
+    const ptt = $ptt(); if (!ptt) return;
+    ptt.addEventListener('mousedown',  e => { e.preventDefault(); if (active && vmState==='ready') _startRecording(); });
+    ptt.addEventListener('mouseup',    e => { e.preventDefault(); if (active) _onRelease(); });
+    ptt.addEventListener('mouseleave', () => { if (active && vmState==='recording') _onRelease(); });
+    ptt.addEventListener('touchstart', e => { e.preventDefault(); if (active && vmState==='ready') _startRecording(); }, {passive:false});
+    ptt.addEventListener('touchend',   e => { e.preventDefault(); if (active) _onRelease(); }, {passive:false});
+    ptt.addEventListener('touchcancel',e => { e.preventDefault(); if (active && vmState==='recording') _onRelease(); }, {passive:false});
+    ptt.addEventListener('click', () => { if (active && (vmState==='speaking'||vmState==='thinking')) interrupt(); });
   }
 
   return { toggle, start, stop, interrupt, init: _init,
