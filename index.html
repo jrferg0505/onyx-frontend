@@ -2600,7 +2600,7 @@ const VM = (() => {
   // VAD tuning
   const THRESH      = 0.018;  // RMS threshold for speech
   const START_MS    = 280;    // must exceed threshold for this long to start
-  const SILENCE_MS  = 900;    // silence after speech = done talking
+  const SILENCE_MS  = 2500;   // silence after speech = done talking
   const MAX_REC_MS  = 28000;
   let speechActive = false, speechT0 = 0, lastSpeechT = 0;
   let vadGeneration = 0;      // prevents stale loops
