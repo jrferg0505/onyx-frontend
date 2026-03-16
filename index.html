@@ -185,6 +185,18 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 #send{width:32px;height:32px;background:var(--t1);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:0;transform:scale(0.5);transition:opacity 0.15s,transform 0.2s cubic-bezier(0.34,1.56,0.64,1);}
 #send.on{opacity:1;transform:scale(1);}
 #send:active{transform:scale(0.88);}
+/* Attach button */
+#attach-btn{background:none;border:none;padding:0;cursor:pointer;color:var(--t3);display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;flex-shrink:0;margin-bottom:3px;}
+#attach-btn:hover{color:var(--t1);}
+#attach-preview{display:none;padding:6px 14px 0;align-items:center;gap:8px;}
+#attach-preview.on{display:flex;}
+.attach-chip{display:flex;align-items:center;gap:6px;background:var(--g2);border:1px solid var(--sep);border-radius:10px;padding:5px 10px;font-size:12px;color:var(--t1);}
+.attach-chip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;}
+.attach-thumb-prev{width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--sep);}
+#attach-rm{background:none;border:none;cursor:pointer;color:var(--t3);font-size:20px;line-height:1;padding:0;margin-left:2px;}
+#attach-rm:hover{color:var(--t1);}
+.msg-img{max-width:220px;border-radius:10px;margin-bottom:4px;display:block;cursor:pointer;}
+.msg-file-chip{display:inline-flex;align-items:center;gap:5px;background:var(--g2);border:1px solid var(--sep);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--t2);margin-bottom:4px;}
 
 /* ── SIDE PANELS ── */
 .ph{padding:6px 16px 14px;flex-shrink:0;border-bottom:0.5px solid var(--sep);}
@@ -888,8 +900,14 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
       </div>
       <div id="thinking"><div class="av ai"><svg width="11" height="11" viewBox="0 0 512 512"><path d="M155 148 Q155 108 256 108 Q357 108 357 148 L368 340 Q368 400 256 408 Q144 400 144 340 Z" fill="white" opacity="0.8"/><path d="M170 256 Q170 244 256 244 Q342 244 342 256 L342 288 Q342 300 256 300 Q170 300 170 288 Z" fill="white"/></svg></div><div class="bub" style="display:flex;gap:4px;align-items:center;padding:4px 0;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
       </div>
+      <input type="file" id="file-inp" accept="image/*,.pdf,.txt,.md,.csv" style="display:none" onchange="handleFileSelect(event)">
+      <div id="attach-preview">
+        <div id="attach-content"></div>
+        <button id="attach-rm" onclick="clearAttachment()" title="Remove">×</button>
+      </div>
       <div id="inp-area">
         <div id="inp-wrap">
+          <button id="attach-btn" title="Attach image or file" onclick="_el('file-inp').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
           <textarea id="inp" placeholder="Message Onyx…" rows="1"></textarea>
 
           <button id="vm-btn" title="Voice mode" onclick="VM.toggle()"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 0 0-9 9 9 9 0 0 0 9 9 9 9 0 0 0 9-9 9 9 0 0 0-9-9zm-1 13v-2.07A5 5 0 0 1 7 9h2a3 3 0 0 0 6 0h2a5 5 0 0 1-4 4.9V16h2v2H9v-2h2z"/></svg></button>
@@ -1238,6 +1256,7 @@ const SYSBASE=`You are Onyx, Reed's personal AI. Reed Ferguson, Indianapolis, wo
 
 let key=localStorage.getItem('reed_key')||'';
 let msgs=[],busy=false,editJob=null,activeConv=null,activeProj=null;
+let pendingAttachment=null;
 
 const _el=id=>document.getElementById(id);
 const inpEl=_el('inp'),sendBtn=_el('send'),thinkEl=_el('thinking'),welEl=_el('welcome');
@@ -1472,7 +1491,8 @@ async function buildSys(lastMsg=''){
 }
 
 async function callAPI(messages){
-  const last=messages[messages.length-1]?.content||'';
+  const lastContent=messages[messages.length-1]?.content||'';
+  const last=Array.isArray(lastContent)?lastContent.find(b=>b.type==='text')?.text||'':lastContent;
   const useSearch=needsSearch(last);
   const useSonnet=useSearch||needsLong(last)||messages.length>6;
   const model=useSonnet?'claude-sonnet-4-5':'claude-haiku-4-5-20251001';
@@ -1502,14 +1522,104 @@ async function callAPI(messages){
   return d;
 }
 
+// ── FILE / IMAGE UPLOAD ──────────────────────────────────────────────────────
+async function loadPdfJs(){
+  if(window.pdfjsLib)return;
+  await new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload=res;s.onerror=rej;document.head.appendChild(s);
+  });
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+async function handleFileSelect(e){
+  const file=e.target.files[0];
+  e.target.value='';
+  if(!file)return;
+  const type=file.type;
+  const name=file.name;
+
+  if(type.startsWith('image/')){
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const dataUrl=ev.target.result;
+      const b64=dataUrl.split(',')[1];
+      pendingAttachment={kind:'image',data:b64,mediaType:type,name,preview:dataUrl};
+      _el('attach-content').innerHTML=`<img class="attach-thumb-prev" src="${dataUrl}">`;
+      _el('attach-preview').classList.add('on');
+      sendBtn.classList.add('on');
+    };
+    reader.readAsDataURL(file);
+  } else if(type==='application/pdf'||name.endsWith('.pdf')){
+    showToast('Reading PDF…');
+    try{
+      await loadPdfJs();
+      const ab=await file.arrayBuffer();
+      const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+      let text='';
+      for(let i=1;i<=Math.min(pdf.numPages,20);i++){
+        const page=await pdf.getPage(i);
+        const tc=await page.getTextContent();
+        text+=tc.items.map(s=>s.str).join(' ')+'\n';
+      }
+      pendingAttachment={kind:'file',text:text.trim(),name};
+      _el('attach-content').innerHTML=`<div class="attach-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="attach-chip-name">${esc(name)}</span></div>`;
+      _el('attach-preview').classList.add('on');
+      sendBtn.classList.add('on');
+    }catch(err){showToast('Could not read PDF');}
+  } else if(type.startsWith('text/')||name.match(/\.(txt|md|csv|json)$/i)){
+    const text=await file.text();
+    pendingAttachment={kind:'file',text,name};
+    _el('attach-content').innerHTML=`<div class="attach-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="attach-chip-name">${esc(name)}</span></div>`;
+    _el('attach-preview').classList.add('on');
+    sendBtn.classList.add('on');
+  } else {
+    showToast('Unsupported file type');
+  }
+}
+
+function clearAttachment(){
+  pendingAttachment=null;
+  _el('attach-preview').classList.remove('on');
+  _el('attach-content').innerHTML='';
+  if(!inpEl.value.trim())sendBtn.classList.remove('on');
+}
+
 async function sendMsg(){
   const text=inpEl.value.trim();
-  if(!text||busy)return;
+  if((!text&&!pendingAttachment)||busy)return;
   if(!key){_el('ksc').classList.add('on');return;}
   welEl.style.display='none';
   inpEl.value='';inpEl.style.height='auto';sendBtn.classList.remove('on');
-  msgs.push({role:'user',content:text});
-  addMsg('user',render(text));
+
+  // Build message content — handle attachments
+  const att=pendingAttachment;
+  clearAttachment();
+  let userHtml='';
+  let apiContent;
+  if(att&&att.kind==='image'){
+    const defaultQ=text||'What is in this image?';
+    apiContent=[
+      {type:'image',source:{type:'base64',media_type:att.mediaType,data:att.data}},
+      {type:'text',text:defaultQ}
+    ];
+    userHtml=`<img class="msg-img" src="data:${att.mediaType};base64,${att.data}" onclick="this.style.maxWidth=this.style.maxWidth?'':'100%'">${text?'<br>'+render(text):''}`;
+    msgs.push({role:'user',content:apiContent});
+    addMsg('user',userHtml);
+  } else if(att&&att.kind==='file'){
+    const fileContext=`[File: ${att.name}]\n${att.text.slice(0,12000)}`;
+    const combined=text?`${fileContext}\n\n${text}`:fileContext+(text?'':'\n\nPlease read this and give me a summary.');
+    apiContent=combined;
+    userHtml=`<div class="msg-file-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${esc(att.name)}</div>${text?'<br>'+render(text):'<br><span style="color:var(--t3);font-size:13px">Summarize this</span>'}`;
+    msgs.push({role:'user',content:combined});
+    addMsg('user',userHtml);
+  } else {
+    apiContent=text;
+    msgs.push({role:'user',content:text});
+    addMsg('user',render(text));
+  }
+
   setThink(true);busy=true;
 
   // ── Memory commands ────────────────────────────────────────────────────────
