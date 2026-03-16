@@ -1047,6 +1047,7 @@ function needsLong(t){return /write|draft|email|letter|resume|cover|explain|how 
 function needsCalendar(t){return /calendar|schedule|event|appointment|meeting|remind|when is|what.*day|this week|today|tomorrow|upcoming/i.test(t);}
 function needsGmail(t){return /email|gmail|inbox|mail|message|unread|reply\s+to|send.*to|wrote.*me|hear.*from/i.test(t);}
 function needsBankData(t){return /\b(balance|how\s+much.*(have|left|in\s+(my|the))|account\s+balance|bank\s+balance|checking|savings\s+account|recent\s+transactions?|transaction\s+history|how\s+much.*spent?|what.*spend|spending\s+this\s+week)\b/i.test(t);}
+function fmtTime(t){try{const[h,m]=t.split(':').map(Number);const ap=h<12?'AM':'PM';const h12=h%12||12;return `${h12}:${String(m).padStart(2,'0')} ${ap}`;}catch(e){return t;}}
 function needsShiftData(t){return /\b(when\s+do\s+i\s+work|next\s+shift|my\s+shift|work\s+(this\s+week|today|tomorrow|schedule)|how\s+many\s+hours|paycheck|pay\s*check|how\s+much.*pay|what.*i\s+make|shift.*week|when.*work|donut\s+shop.*schedule)\b/i.test(t);}
 function isMorningBriefing(t){return /^(good\s*morning|gm|morning|hey\s+morning|what('?s|\s+is)\s+(my\s+)?(day|today)|what('?s|\s+is)\s+today|today('?s|\s+is)|\bmorning\s+briefing\b|what\s+do\s+i\s+have\s+today|how('?s|\s+is)\s+(my\s+)?day|day\s+look)/i.test(t.trim());}
 
@@ -1175,9 +1176,9 @@ async function buildSys(lastMsg=''){
       const today=new Date().toISOString().slice(0,10);
       const upcoming=(d.shifts||[]).filter(s=>s.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
       if(upcoming.length){
-        const lines=upcoming.slice(0,7).map(s=>`- ${s.day} ${s.date}: ${s.start}–${s.end} (${s.hours}h)`);
+        const lines=upcoming.slice(0,7).map(s=>`- ${s.day} ${s.date}: ${fmtTime(s.start)}–${fmtTime(s.end)} (${s.hours}h)`);
         s+=`\n\nReed's Work Schedule (upcoming shifts):\n${lines.join('\n')}`;
-        if(d.projected_paycheck!=null)s+=`\nProjected paycheck this period: $${d.projected_paycheck.toFixed(2)} (${d.total_hours}h × $${d.hourly_rate}/hr)`;
+        if(d.paycheck!=null)s+=`\nPaycheck: Gross $${d.paycheck.gross.toFixed(2)}, take-home ~$${d.paycheck.net.toFixed(2)} after taxes (${d.total_hours}h × $${d.hourly_rate}/hr)`;
       }else{
         s+='\n\nReed\'s Work Schedule: No upcoming shifts synced yet.';
       }
@@ -2257,10 +2258,14 @@ async function schedLoad(){
     const today=new Date().toISOString().slice(0,10);
     const upcoming=shifts.filter(s=>s.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
     // Paycheck card
-    if(d.projected_paycheck!=null&&upcoming.length>0){
+    const pay=d.paycheck;
+    if(pay!=null&&upcoming.length>0){
       _el('sched-pay-card').style.display='block';
-      _el('sched-pay-amt').textContent='$'+d.projected_paycheck.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-      _el('sched-pay-sub').textContent=d.total_hours+'h × $'+(d.hourly_rate||'?')+'/hr · this pay period';
+      _el('sched-pay-amt').textContent='~$'+pay.net.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+      _el('sched-pay-sub').innerHTML=
+        `<span style="color:var(--t2)">Gross $${pay.gross.toFixed(2)}</span>`+
+        `<span style="color:#f87171"> &minus;$${pay.total_deductions.toFixed(2)} taxes</span>`+
+        `<br><span style="font-size:11px;color:var(--t3)">Fed 12% &nbsp;·&nbsp; IN 3.05% &nbsp;·&nbsp; FICA 7.65%</span>`;
     }else{
       _el('sched-pay-card').style.display='none';
     }
@@ -2284,7 +2289,7 @@ async function schedLoad(){
         <div class="sched-shift-icon">${em}</div>
         <div class="sched-shift-info">
           <div class="sched-shift-date">${fmt}${isNext?' <span style="font-size:11px;background:#2563eb22;color:#60a5fa;border-radius:6px;padding:1px 6px;font-weight:500;">Next</span>':''}</div>
-          <div class="sched-shift-time">${s.start} – ${s.end}</div>
+          <div class="sched-shift-time">${fmtTime(s.start)} – ${fmtTime(s.end)}</div>
         </div>
         <div class="sched-shift-hrs">${s.hours}h</div>
       </div>`;
