@@ -1130,7 +1130,7 @@ _el('k-inp').addEventListener('keydown',e=>{if(e.key==='Enter')saveKey();});
 function saveKey(){
   const v=_el('k-inp').value.trim();
   if(!v.startsWith('sk-')){_el('k-inp').classList.add('err');return;}
-  key=v;localStorage.setItem('reed_key',v);_el('ksc').classList.remove('on');inpEl.focus();
+  key=v;localStorage.setItem('reed_key',v);_el('ksc').classList.remove('on');inpEl.focus();syncMemsFromBackend();
 }
 
 // ── SIDEBAR ──
@@ -1392,6 +1392,42 @@ async function sendMsg(){
   msgs.push({role:'user',content:text});
   addMsg('user',render(text));
   setThink(true);busy=true;
+
+  // ── Memory commands ────────────────────────────────────────────────────────
+  const tl=text.toLowerCase();
+  // "remember that X" — save memory
+  const remMatch=text.match(/^remember (?:that )?(.+)$/i);
+  if(remMatch){
+    const content=remMatch[1].trim();
+    const mem={id:Date.now().toString(),content,category:'general',date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})};
+    const mems=getMems();mems.unshift(mem);setMems(mems);renderMemList();
+    _pushMem(mem);
+    const reply=`Got it — I'll remember that: "${content}"`;
+    msgs.push({role:'assistant',content:reply});
+    setThink(false);addMsg('ai',render(reply));speakResponse(reply);saveConv();renderHist();
+    busy=false;inpEl.focus();return;
+  }
+  // "forget that X" or "forget X" — remove closest matching memory
+  const forgetMatch=text.match(/^forget (?:that )?(.+)$/i);
+  if(forgetMatch){
+    const query=forgetMatch[1].trim().toLowerCase();
+    const mems=getMems();
+    const idx=mems.findIndex(m=>m.content.toLowerCase().includes(query));
+    if(idx!==-1){
+      const removed=mems[idx];mems.splice(idx,1);setMems(mems);renderMemList();
+      if(removed.id)_deleteMem(removed.id);
+      const reply=`Done — I've forgotten: "${removed.content}"`;
+      msgs.push({role:'assistant',content:reply});
+      setThink(false);addMsg('ai',render(reply));speakResponse(reply);saveConv();renderHist();
+    }else{
+      const reply=`I couldn't find a memory matching that. Say "what do you know about me" to see what I've saved.`;
+      msgs.push({role:'assistant',content:reply});
+      setThink(false);addMsg('ai',render(reply));speakResponse(reply);saveConv();renderHist();
+    }
+    busy=false;inpEl.focus();return;
+  }
+  // "what do you know about me" — list memories via AI (falls through to normal AI call with injected memory)
+
   // morning briefing shortcut
   if(isMorningBriefing(text)){
     try{
@@ -1421,6 +1457,7 @@ async function sendMsg(){
     msgs.push({role:'assistant',content:finalText||'Something went wrong.'});
     setThink(false);addMsg('ai',render(msgs[msgs.length-1].content),sources);speakResponse(msgs[msgs.length-1].content);
     saveConv();renderHist();
+    _bgExtract(text); // background memory extraction — fire and forget
   }catch(e){
     rmSearch();setThink(false);
     const msg=e.message||'';
@@ -1494,6 +1531,46 @@ function filterHist(q){
 // ── MEMORY ──
 const getMems=()=>JSON.parse(localStorage.getItem('reed_mems')||'[]');
 const setMems=m=>localStorage.setItem('reed_mems',JSON.stringify(m));
+
+// ── Memory backend sync ────────────────────────────────────────────────────
+async function syncMemsFromBackend(){
+  try{
+    const r=await bFetch('/memory');if(!r.ok)return;
+    const d=await r.json();
+    const serverMems=(d.memories||[]);
+    if(!serverMems.length)return;
+    // Merge: server is source of truth. Update localStorage with server copy.
+    setMems(serverMems);renderMemList();
+  }catch(e){}
+}
+async function _pushMem(mem){
+  try{
+    await bFetch('/memory',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({content:mem.content,category:mem.category})});
+  }catch(e){}
+}
+async function _deleteMem(id){
+  if(!id)return;
+  try{await bFetch('/memory/'+id,{method:'DELETE'});}catch(e){}
+}
+// Fire-and-forget: extract memorable facts from a user message in the background
+function _bgExtract(message){
+  if(!message||message.length<8)return;
+  bFetch('/memory/extract',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({message})})
+  .then(r=>r.json()).then(d=>{
+    if(d.extracted&&d.extracted.length){
+      // Merge newly extracted into localStorage
+      const mems=getMems();
+      const existing=new Set(mems.map(m=>m.content.toLowerCase()));
+      let added=0;
+      d.extracted.forEach(m=>{
+        if(!existing.has(m.content.toLowerCase())){mems.unshift(m);existing.add(m.content.toLowerCase());added++;}
+      });
+      if(added){setMems(mems);renderMemList();}
+    }
+  }).catch(()=>{});
+}
 const getProjects=()=>JSON.parse(localStorage.getItem('reed_projs')||'[]');
 const setProjects=p=>localStorage.setItem('reed_projs',JSON.stringify(p));
 
@@ -1529,15 +1606,35 @@ function renderProjList(){
 
 function renderMemList(){
   const mems=getMems(),el=_el('mem-list');
-  if(!mems.length){el.innerHTML='<div class="empty"><div class="empty-i">🧠</div><div class="empty-t">No Memories</div><div class="empty-s">Add things you want Onyx to always know</div></div>';return;}
-  const ce={goal:'🎯',preference:'⚙️',fact:'👤',reminder:'⏰',other:'💭'};
-  el.innerHTML=mems.map((m,i)=>`
-    <div class="gc" style="padding-right:34px;">
-      <div class="mem-cat">${ce[m.category]||'💭'} ${esc(m.category?.charAt(0).toUpperCase()+m.category?.slice(1)||'Memory')}</div>
-      <div class="mem-body">${esc(m.content)}</div>
-      <div class="mem-date">${esc(m.date||'')}</div>
-      <button class="mem-del" onclick="delMem(${i})">✕</button>
-    </div>`).join('');
+  if(!mems.length){el.innerHTML='<div class="empty"><div class="empty-i">🧠</div><div class="empty-t">No Memories</div><div class="empty-s">Chat with Onyx and it will learn about you automatically</div></div>';return;}
+  // Group by category
+  const cats=[
+    {key:'preference',label:'Preferences',icon:'⚙️'},
+    {key:'goal',label:'Goals',icon:'🎯'},
+    {key:'work',label:'Work',icon:'💼'},
+    {key:'general',label:'General',icon:'👤'},
+    // legacy fallbacks
+    {key:'fact',label:'General',icon:'👤'},
+    {key:'reminder',label:'General',icon:'👤'},
+    {key:'other',label:'General',icon:'👤'},
+  ];
+  // Normalize legacy categories
+  const norm=m=>({preference:'preference',goal:'goal',work:'work',general:'general',fact:'general',reminder:'general',other:'general'})[m.category]||'general';
+  const groups={preference:[],goal:[],work:[],general:[]};
+  mems.forEach((m,i)=>groups[norm(m)].push({m,i}));
+  let html='';
+  cats.slice(0,4).forEach(({key,label,icon})=>{
+    if(!groups[key].length)return;
+    html+=`<div class="sec-lbl" style="margin-top:14px;">${icon} ${label}</div>`;
+    groups[key].forEach(({m,i})=>{
+      html+=`<div class="gc" style="padding-right:34px;">
+        <div class="mem-body">${esc(m.content)}</div>
+        <div class="mem-date">${esc(m.date||'')}</div>
+        <button class="mem-del" onclick="delMem(${i})">✕</button>
+      </div>`;
+    });
+  });
+  el.innerHTML=html;
 }
 
 function openProj(){_el('proj-ov').classList.add('on');setTimeout(()=>_el('proj-name').focus(),300);}
@@ -1560,27 +1657,32 @@ function saveMem(){
   const content=_el('mem-inp').value.trim();if(!content)return;
   const category=_el('mem-cat').value;
   const mems=getMems();
-  mems.unshift({content,category,date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})});
+  const mem={id:Date.now().toString(),content,category,date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})};
+  mems.unshift(mem);
   setMems(mems);closeMem();_el('mem-inp').value='';renderMemList();showToast('✅ Memory Saved');
+  _pushMem(mem);
 }
-function delMem(i){const mems=getMems();mems.splice(i,1);setMems(mems);renderMemList();}
+function delMem(i){
+  const mems=getMems();
+  const mem=mems[i];
+  mems.splice(i,1);
+  setMems(mems);renderMemList();
+  if(mem&&mem.id)_deleteMem(mem.id);
+}
 
 async function autoExtract(){
   if(!msgs.length){showToast('💬 Have A Conversation First');return;}
   showToast('🧠 Extracting...');
   try{
-    const text=msgs.map(m=>`${m.role==='user'?'Reed':'AI'}: ${m.content}`).slice(-10).join('\n');
-    const res=await bFetch('/chat',{method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:512,messages:[{role:'user',content:`Extract key facts from this conversation. Return ONLY JSON array: [{"content":"fact","category":"goal|preference|fact|reminder|other"}]. Max 5 items.\n\n${text}`}]})
-    });
-    const d=await res.json();
-    const t=d.content?.find(b=>b.type==='text')?.text||'[]';
-    const match=t.match(/\[[\s\S]*\]/);if(!match){showToast('Nothing Found');return;}
-    const extracted=JSON.parse(match[0]);if(!extracted.length){showToast('Nothing Found');return;}
-    const mems=getMems();const today=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    extracted.forEach(e=>mems.unshift({content:e.content,category:e.category||'other',date:today}));
-    setMems(mems);renderMemList();showToast(`✅ Extracted ${extracted.length} Memories`);
+    const userMsgs=msgs.filter(m=>m.role==='user').slice(-5).map(m=>m.content).join(' ');
+    const r=await bFetch('/memory/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:userMsgs})});
+    const d=await r.json();
+    if(!d.extracted||!d.extracted.length){showToast('Nothing To Remember');return;}
+    // Backend already saved; sync to localStorage
+    const mems=getMems();
+    const existing=new Set(mems.map(m=>m.content.toLowerCase()));
+    d.extracted.forEach(m=>{if(!existing.has(m.content.toLowerCase()))mems.unshift(m);});
+    setMems(mems);renderMemList();showToast(`✅ Remembered ${d.extracted.length} Things`);
   }catch(e){showToast('❌ Extract Failed');}
 }
 
@@ -2935,6 +3037,8 @@ const VM = (() => {
 
 window.addEventListener('DOMContentLoaded', () => {
   VM.init();
+  // Sync memories from backend on load (non-blocking)
+  if(key) syncMemsFromBackend();
 
   // Auto-launch voice mode when opened via ?voice=true or /voice path
   const params = new URLSearchParams(window.location.search);
