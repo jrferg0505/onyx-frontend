@@ -714,6 +714,7 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
         <div id="inp-wrap">
           <textarea id="inp" placeholder="Message Onyx…" rows="1"></textarea>
 
+          <button id="mic" title="Hold to speak"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg></button>
           <button id="send" onclick="sendMsg()">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="black"><path d="M12 4l8 8h-5v8h-6v-8H4z"/></svg>
           </button>
@@ -799,6 +800,18 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
           <div class="sched-r"><span class="sched-i">🌙</span><span class="sched-l">Mood Check-In</span><span class="sched-v">9:30 PM</span></div>
           <div class="sched-r"><span class="sched-i">💰</span><span class="sched-l">Savings Check</span><span class="sched-v">Sun 8 PM</span></div>
           <div class="sched-r"><span class="sched-i">💸</span><span class="sched-l">Spend Report</span><span class="sched-v">Tue 4 PM</span></div>
+        </div>
+        <div class="sec-lbl">Settings</div>
+        <div class="grp">
+          <div class="grp-row" style="cursor:default;">
+            <span class="grp-icon" style="background:#1a1a2e;font-size:16px;">🎙</span>
+            <span class="grp-lbl">Voice Responses</span>
+            <label class="lights-toggle" style="margin-left:auto;">
+              <input type="checkbox" id="voice-mode-toggle" onchange="setVoiceMode(this.checked)">
+              <span class="lights-track"></span>
+              <span class="lights-thumb"></span>
+            </label>
+          </div>
         </div>
       </div></div>
     </div>
@@ -1304,7 +1317,7 @@ async function sendMsg(){
     try{
       const brief=await generateMorningBriefing(false);
       msgs.push({role:'assistant',content:brief});
-      setThink(false);addMsg('ai',render(brief));
+      setThink(false);addMsg('ai',render(brief));speakResponse(brief);
       saveConv();renderHist();
     }catch(e){setThink(false);addMsg('ai','Error generating morning briefing.');}
     busy=false;inpEl.focus();return;
@@ -1326,7 +1339,7 @@ async function sendMsg(){
       if(b.type==='web_search_tool_result')for(const r of b.content||[])if(r.url&&r.title&&!sources.find(s=>s.url===r.url))sources.push({url:r.url,title:r.title});
     }
     msgs.push({role:'assistant',content:finalText||'Something went wrong.'});
-    setThink(false);addMsg('ai',render(msgs[msgs.length-1].content),sources);
+    setThink(false);addMsg('ai',render(msgs[msgs.length-1].content),sources);speakResponse(msgs[msgs.length-1].content);
     saveConv();renderHist();
   }catch(e){
     rmSearch();setThink(false);
@@ -2432,6 +2445,126 @@ async function lightsColorHex(hex){
     _lightsStatus(`Color ${hex} ✓`,'var(--t2)');
   }catch(e){_lightsStatus('Error','#f66');}
 }
+
+// ── Voice Chat ──────────────────────────────────────────────────────────────
+let voiceMode = localStorage.getItem('voiceMode') === '1';
+let _mediaRec = null, _audioChunks = [], _recording = false;
+
+function setVoiceMode(on) {
+  voiceMode = on;
+  localStorage.setItem('voiceMode', on ? '1' : '0');
+  const t = _el('voice-mode-toggle');
+  if (t) t.checked = on;
+}
+
+// Init on load
+window.addEventListener('DOMContentLoaded', () => {
+  const t = _el('voice-mode-toggle');
+  if (t) t.checked = voiceMode;
+  _setupMic();
+});
+
+function _setupMic() {
+  const mic = document.getElementById('mic');
+  if (!mic) return;
+  let pressTimer = null;
+
+  const startHold = async (e) => {
+    e.preventDefault();
+    if (_recording) return;
+    pressTimer = setTimeout(async () => { await _startRecording(); }, 100);
+  };
+  const endHold = async (e) => {
+    e.preventDefault();
+    clearTimeout(pressTimer);
+    if (_recording) await _stopRecording();
+  };
+
+  mic.addEventListener('pointerdown', startHold);
+  mic.addEventListener('pointerup', endHold);
+  mic.addEventListener('pointercancel', endHold);
+  // Click fallback (tap = toggle)
+  mic.addEventListener('click', async (e) => {
+    if (_recording) { await _stopRecording(); }
+    else { await _startRecording(); }
+  });
+}
+
+async function _startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    _audioChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus' : 'audio/webm';
+    _mediaRec = new MediaRecorder(stream, { mimeType });
+    _mediaRec.ondataavailable = e => { if (e.data.size > 0) _audioChunks.push(e.data); };
+    _mediaRec.start(100);
+    _recording = true;
+    const mic = document.getElementById('mic');
+    if (mic) mic.classList.add('on');
+    const inp = document.getElementById('inp');
+    if (inp) inp.placeholder = 'Listening…';
+  } catch(e) {
+    showToast('Microphone access denied');
+  }
+}
+
+async function _stopRecording() {
+  if (!_mediaRec || !_recording) return;
+  _recording = false;
+  const mic = document.getElementById('mic');
+  if (mic) mic.classList.remove('on');
+  const inp = document.getElementById('inp');
+  if (inp) inp.placeholder = 'Transcribing…';
+
+  await new Promise(resolve => {
+    _mediaRec.onstop = resolve;
+    _mediaRec.stop();
+    _mediaRec.stream.getTracks().forEach(t => t.stop());
+  });
+
+  const blob = new Blob(_audioChunks, { type: 'audio/webm' });
+  _audioChunks = [];
+  if (inp) inp.placeholder = 'Message Onyx…';
+
+  if (blob.size < 1000) { showToast('Recording too short'); return; }
+
+  try {
+    if (inp) inp.placeholder = 'Transcribing…';
+    const fd = new FormData();
+    fd.append('audio', blob, 'audio.webm');
+    const r = await bFetch('/voice/transcribe', { method: 'POST', headers: {}, body: fd });
+    const data = await r.json();
+    if (inp) inp.placeholder = 'Message Onyx…';
+    if (data.text && data.text.trim()) {
+      if (inp) { inp.value = data.text.trim(); inp.style.height = 'auto'; }
+      sendMsg();
+    } else {
+      showToast("Couldn't hear that — try again");
+    }
+  } catch(e) {
+    if (inp) inp.placeholder = 'Message Onyx…';
+    showToast('Transcription failed');
+  }
+}
+
+async function speakResponse(text) {
+  if (!voiceMode || !text) return;
+  try {
+    const r = await bFetch('/voice/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    if (!r.ok) return;
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => URL.revokeObjectURL(url);
+    audio.play().catch(() => {});
+  } catch(e) { /* silent — TTS is best-effort */ }
+}
+
 
 </script>
 </body>
