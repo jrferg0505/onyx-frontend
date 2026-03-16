@@ -528,6 +528,14 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 #vm-btn:hover{background:var(--g3);}
 #vm-btn.active{background:rgba(124,58,237,0.2);color:#a78bfa;}
 
+/* Voice launch tap-to-start screen */
+#voice-launch-tap{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:9999;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.vlt-inner{display:flex;flex-direction:column;align-items:center;gap:20px;user-select:none;}
+.vlt-orb{width:80px;height:80px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#a78bfa,#7c3aed 60%,#312e81);box-shadow:0 0 40px rgba(124,58,237,0.6);animation:vlt-pulse 2s ease-in-out infinite;}
+@keyframes vlt-pulse{0%,100%{transform:scale(1);box-shadow:0 0 40px rgba(124,58,237,0.6);}50%{transform:scale(1.08);box-shadow:0 0 60px rgba(124,58,237,0.9);}}
+.vlt-title{font-size:2rem;font-weight:700;color:#fff;letter-spacing:.02em;margin:0;}
+.vlt-sub{font-size:1rem;color:rgba(255,255,255,0.5);margin:0;}
+
 </style>
 <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
 </head>
@@ -2920,7 +2928,33 @@ const VM = (() => {
            get active() { return active; }, get state() { return vmState; } };
 })();
 
-window.addEventListener('DOMContentLoaded', () => VM.init());
+window.addEventListener('DOMContentLoaded', () => {
+  VM.init();
+
+  // Auto-launch voice mode when opened via ?voice=true or /voice path
+  const params = new URLSearchParams(window.location.search);
+  const isVoiceLaunch = params.get('voice') === 'true'
+                      || window.location.pathname === '/voice'
+                      || window.location.pathname === '/voice/';
+  if (isVoiceLaunch) {
+    // getUserMedia requires a user gesture on iOS — show a tap-to-start screen
+    const tap = document.createElement('div');
+    tap.id = 'voice-launch-tap';
+    tap.innerHTML = `
+      <div class="vlt-inner">
+        <div class="vlt-orb"></div>
+        <p class="vlt-title">Onyx</p>
+        <p class="vlt-sub">Tap to start voice</p>
+      </div>`;
+    document.body.appendChild(tap);
+    const launch = async () => {
+      tap.remove();
+      await VM.start();
+    };
+    tap.addEventListener('click', launch, {once: true});
+    tap.addEventListener('touchend', launch, {once: true, passive: true});
+  }
+});
 
 </script>
 </body>

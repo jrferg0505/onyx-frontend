@@ -5,3 +5,9 @@
   for = "/*"
   [headers.values]
     Cache-Control = "no-cache"
+
+# /voice path goes straight to voice mode
+[[redirects]]
+  from = "/voice"
+  to = "/index.html"
+  status = 200
