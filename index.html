@@ -201,7 +201,7 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 .grp-row+.grp-row::before{content:'';position:absolute;top:0;left:54px;right:0;height:0.5px;background:var(--sep);}
 .grp-row:active{background:rgba(255,255,255,0.05);}
 .grp-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.grp-icon svg{width:14px;height:14px;color:#fff;}
+.grp-icon svg{width:14px;height:14px;color:#fff;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 .grp-lbl{flex:1;font-size:15px;color:var(--t1);text-align:left;}
 .grp-val{font-size:15px;color:var(--t3);margin-right:4px;}
 .grp-chev{font-size:17px;color:var(--t3);line-height:1;}
@@ -256,7 +256,7 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 .sched-hd{font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;padding:10px 14px 6px;}
 .sched-r{display:flex;align-items:center;gap:12px;padding:10px 14px;position:relative;}
 .sched-r+.sched-r::before{content:'';position:absolute;top:0;left:44px;right:0;height:0.5px;background:var(--sep);}
-.sched-i{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+.sched-i{width:16px;height:16px;flex-shrink:0;color:var(--t3);display:flex;align-items:center;justify-content:center;}.sched-i svg{width:14px;height:14px;stroke:currentColor;}
 .sched-l{flex:1;font-size:14px;color:var(--t1);}
 .sched-v{font-size:13px;color:var(--t3);}
 
@@ -281,7 +281,7 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 .badge{font-size:11px;background:rgba(10,132,255,0.12);color:var(--blue);padding:2px 8px;border-radius:10px;}
 
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:6px;text-align:center;}
-.empty-i{font-size:30px;margin-bottom:4px;opacity:0.25;}
+.empty-i{width:32px;height:32px;margin-bottom:4px;opacity:0.25;color:var(--t2);}.empty-i svg{width:32px;height:32px;stroke:currentColor;}
 .empty-t{font-size:16px;font-weight:500;color:var(--t2);}
 .empty-s{font-size:14px;color:var(--t3);line-height:1.4;max-width:200px;}
 
@@ -571,7 +571,7 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 .dash-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .dash-act{background:var(--g1);border:1px solid var(--sep);border-radius:14px;padding:14px 12px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;cursor:pointer;text-align:left;}
 .dash-act:active{background:var(--g2);}
-.dash-act-icon{font-size:20px;}
+.dash-act-icon{width:22px;height:22px;color:var(--t2);}.dash-act-icon svg{width:22px;height:22px;stroke:currentColor;}
 .dash-act-lbl{font-size:13px;font-weight:500;color:var(--t1);}
 /* Empty/loading states */
 .dc-empty{font-size:13px;color:var(--t3);padding:4px 0;}
@@ -831,28 +831,28 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
         </div>
         <!-- Calendar -->
         <div class="dash-card dc-calendar">
-          <div class="dash-card-title">📅 Calendar</div>
+          <div class="dash-card-title">Calendar</div>
           <div id="dash-cal-body"><div class="dc-loading">Loading…</div></div>
         </div>
         <!-- Emails -->
         <div class="dash-card dc-email">
-          <div class="dash-card-title">✉️ Recent Emails</div>
+          <div class="dash-card-title">Recent Emails</div>
           <div id="dash-email-body"><div class="dc-loading">Loading…</div></div>
         </div>
         <!-- Quick Actions -->
         <div class="dash-card-title" style="padding:0 2px;">Quick Actions</div>
         <div class="dash-actions">
           <button class="dash-act" onclick="newChat();showPanel('chat')">
-            <span class="dash-act-icon">💬</span><span class="dash-act-lbl">New Chat</span>
+            <span class="dash-act-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="dash-act-lbl">New Chat</span>
           </button>
           <button class="dash-act" onclick="VM.toggle()">
-            <span class="dash-act-icon">🎤</span><span class="dash-act-lbl">Voice Mode</span>
+            <span class="dash-act-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span><span class="dash-act-lbl">Voice Mode</span>
           </button>
           <button class="dash-act" onclick="showPanel('gmail')">
-            <span class="dash-act-icon">📧</span><span class="dash-act-lbl">Check Emails</span>
+            <span class="dash-act-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span><span class="dash-act-lbl">Check Emails</span>
           </button>
           <button class="dash-act" onclick="showPanel('schedule')">
-            <span class="dash-act-icon">📋</span><span class="dash-act-lbl">Schedule</span>
+            <span class="dash-act-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></span><span class="dash-act-lbl">Schedule</span>
           </button>
         </div>
       </div>
@@ -910,7 +910,7 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
           <div class="st"><div class="st-n" id="s-offer" style="color:var(--t1)">0</div><div class="st-l">Offers</div></div>
         </div>
         <div class="jact">
-          <button class="jabt" id="find-btn" onclick="openFindJobs()">🔍 Find Jobs For Me</button>
+          <button class="jabt" id="find-btn" onclick="openFindJobs()">Find Jobs For Me</button>
           <button class="jabt" id="addjob-btn" onclick="openJob()">+ Add Job</button>
         </div>
         <div id="job-list"></div>
@@ -922,27 +922,27 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
         <div class="status-pill"><div id="agt-dot" class="sdot2 loading"></div><span id="agt-txt" style="font-size:14px;color:var(--t2)">Checking status…</span></div>
         <div class="grp">
           <button class="grp-row" onclick="agentRun('scan-jobs')">
-            <span class="grp-icon" style="background:var(--blue);font-size:14px;">🔍</span>
+            <span class="grp-icon" style="background:var(--blue)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
             <span class="grp-lbl">Scan For Jobs Now</span><span class="grp-chev">›</span>
           </button>
           <button class="grp-row" onclick="agentRun('news')">
-            <span class="grp-icon" style="background:var(--purple);font-size:14px;">📡</span>
+            <span class="grp-icon" style="background:var(--purple)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
             <span class="grp-lbl">Today's AI News</span><span class="grp-chev">›</span>
           </button>
           <button class="grp-row" onclick="agentRun('checkin')">
-            <span class="grp-icon" style="background:var(--teal);font-size:14px;">🌙</span>
+            <span class="grp-icon" style="background:var(--teal)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
             <span class="grp-lbl">Evening Check-In</span><span class="grp-chev">›</span>
           </button>
           <button class="grp-row" onclick="openSav()">
-            <span class="grp-icon" style="background:var(--green);font-size:14px;">💰</span>
+            <span class="grp-icon" style="background:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
             <span class="grp-lbl">Log Savings</span><span class="grp-chev">›</span>
           </button>
           <button class="grp-row" onclick="openSpd()">
-            <span class="grp-icon" style="background:var(--red);font-size:14px;">💸</span>
+            <span class="grp-icon" style="background:var(--red)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span>
             <span class="grp-lbl">Log Spending</span><span class="grp-chev">›</span>
           </button>
           <button class="grp-row" onclick="openTask()">
-            <span class="grp-icon" style="background:var(--yellow);font-size:14px;">⚡</span>
+            <span class="grp-icon" style="background:var(--yellow)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
             <span class="grp-lbl">Custom Task</span><span class="grp-chev">›</span>
           </button>
         </div>
@@ -954,16 +954,16 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
         </div>
         <div class="sec-lbl">Schedule</div>
         <div class="sched-grp">
-          <div class="sched-r"><span class="sched-i">🔍</span><span class="sched-l">Job Scan</span><span class="sched-v">9:00 AM</span></div>
-          <div class="sched-r"><span class="sched-i">📡</span><span class="sched-l">AI News</span><span class="sched-v">7:00 PM</span></div>
-          <div class="sched-r"><span class="sched-i">🌙</span><span class="sched-l">Mood Check-In</span><span class="sched-v">9:30 PM</span></div>
-          <div class="sched-r"><span class="sched-i">💰</span><span class="sched-l">Savings Check</span><span class="sched-v">Sun 8 PM</span></div>
-          <div class="sched-r"><span class="sched-i">💸</span><span class="sched-l">Spend Report</span><span class="sched-v">Tue 4 PM</span></div>
+          <div class="sched-r"><span class="sched-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span><span class="sched-l">Job Scan</span><span class="sched-v">9:00 AM</span></div>
+          <div class="sched-r"><span class="sched-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><span class="sched-l">AI News</span><span class="sched-v">7:00 PM</span></div>
+          <div class="sched-r"><span class="sched-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span><span class="sched-l">Mood Check-In</span><span class="sched-v">9:30 PM</span></div>
+          <div class="sched-r"><span class="sched-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="sched-l">Savings Check</span><span class="sched-v">Sun 8 PM</span></div>
+          <div class="sched-r"><span class="sched-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></span><span class="sched-l">Spend Report</span><span class="sched-v">Tue 4 PM</span></div>
         </div>
         <div class="sec-lbl">Settings</div>
         <div class="grp">
           <div class="grp-row" style="cursor:default;">
-            <span class="grp-icon" style="background:#1a1a2e;font-size:16px;">🎙</span>
+            <span class="grp-icon" style="background:#1a1a2e"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
             <span class="grp-lbl">Voice Responses</span>
             <label class="lights-toggle" style="margin-left:auto;">
               <input type="checkbox" id="voice-mode-toggle" onchange="setVoiceMode(this.checked)">
@@ -990,7 +990,7 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
       </div>
       <div id="wa-msgs">
         <div class="empty" id="wa-empty">
-          <div class="empty-i">💬</div>
+          <div class="empty-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
           <div class="empty-t">No messages yet</div>
           <div class="empty-s">Messages from WhatsApp will appear here. Connect your number to get started.</div>
         </div>
@@ -1676,7 +1676,7 @@ function renderMemory(){renderConvList();renderProjList();renderMemList();}
 
 function renderConvList(){
   const convs=getConvs(),el=_el('conv-list');
-  if(!convs.length){el.innerHTML='<div class="empty"><div class="empty-i">💬</div><div class="empty-t">No Conversations Yet</div></div>';return;}
+  if(!convs.length){el.innerHTML='<div class="empty"><div class="empty-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="empty-t">No Conversations Yet</div></div>';return;}
   el.innerHTML=convs.map(c=>`
     <div class="gc ${c.id===activeConv?'on':''}" onclick="loadConv('${c.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
@@ -1690,7 +1690,7 @@ function renderConvList(){
 
 function renderProjList(){
   const projs=getProjects(),el=_el('proj-list');
-  if(!projs.length){el.innerHTML='<div class="empty"><div class="empty-i">📁</div><div class="empty-t">No Projects</div><div class="empty-s">Create a project to give Onyx persistent context</div></div>';return;}
+  if(!projs.length){el.innerHTML='<div class="empty"><div class="empty-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div><div class="empty-t">No Projects</div><div class="empty-s">Create a project to give Onyx persistent context</div></div>';return;}
   el.innerHTML=projs.map(p=>`
     <div class="gc ${p.id===activeProj?'on':''}" onclick="selectProj('${p.id}')">
       <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -1704,17 +1704,17 @@ function renderProjList(){
 
 function renderMemList(){
   const mems=getMems(),el=_el('mem-list');
-  if(!mems.length){el.innerHTML='<div class="empty"><div class="empty-i">🧠</div><div class="empty-t">No Memories</div><div class="empty-s">Chat with Onyx and it will learn about you automatically</div></div>';return;}
+  if(!mems.length){el.innerHTML='<div class="empty"><div class="empty-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg></div><div class="empty-t">No Memories</div><div class="empty-s">Chat with Onyx and it will learn about you automatically</div></div>';return;}
   // Group by category
   const cats=[
-    {key:'preference',label:'Preferences',icon:'⚙️'},
-    {key:'goal',label:'Goals',icon:'🎯'},
-    {key:'work',label:'Work',icon:'💼'},
-    {key:'general',label:'General',icon:'👤'},
+    {key:'preference',label:'Preferences',icon:'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83\"/></svg>'},
+    {key:'goal',label:'Goals',icon:'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><circle cx=\"12\" cy=\"12\" r=\"6\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/></svg>'},
+    {key:'work',label:'Work',icon:'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"2\" y=\"7\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2\"/></svg>'},
+    {key:'general',label:'General',icon:'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\"/><circle cx=\"12\" cy=\"7\" r=\"4\"/></svg>'},
     // legacy fallbacks
-    {key:'fact',label:'General',icon:'👤'},
-    {key:'reminder',label:'General',icon:'👤'},
-    {key:'other',label:'General',icon:'👤'},
+    {key:'fact',label:'General',icon:'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\"/><circle cx=\"12\" cy=\"7\" r=\"4\"/></svg>'},
+    {key:'reminder',label:'General',icon:'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\"/><circle cx=\"12\" cy=\"7\" r=\"4\"/></svg>'},
+    {key:'other',label:'General',icon:'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\"/><circle cx=\"12\" cy=\"7\" r=\"4\"/></svg>'},
   ];
   // Normalize legacy categories
   const norm=m=>({preference:'preference',goal:'goal',work:'work',general:'general',fact:'general',reminder:'general',other:'general'})[m.category]||'general';
@@ -1916,15 +1916,15 @@ function renderJobs(){
   _el('s-applied').textContent=jobs.filter(j=>j.status==='applied').length;
   _el('s-interview').textContent=jobs.filter(j=>j.status==='interview').length;
   _el('s-offer').textContent=jobs.filter(j=>j.status==='offer').length;
-  if(!jobs.length){el.innerHTML='<div class="empty"><div class="empty-i">📋</div><div class="empty-t">No Jobs Yet</div><div class="empty-s">Tap Find Jobs or Add Job to start</div></div>';return;}
+  if(!jobs.length){el.innerHTML='<div class="empty"><div class="empty-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div><div class="empty-t">No Jobs Yet</div><div class="empty-s">Tap Find Jobs or Add Job to start</div></div>';return;}
   const sl={saved:'Saved',applied:'Applied',interview:'Interview',offer:'Offer ✨',rejected:'Rejected'};
   el.innerHTML=sorted.map(j=>`
     <div class="jc" onclick="openEditJob('${j.id}')">
       <div class="jc-top"><div class="jc-title">${esc(j.title)}</div><div class="jc-badge s-${j.status}">${sl[j.status]||j.status}</div></div>
       <div class="jc-co">${esc(j.company)}</div>
       <div class="jc-tags">
-        ${j.location?`<span class="jc-tag">📍 ${esc(j.location)}</span>`:''}
-        ${j.pay?`<span class="jc-tag">💰 ${esc(j.pay)}</span>`:''}
+        ${j.location?`<span class="jc-tag"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/></svg> ${esc(j.location)}</span>`:''}
+        ${j.pay?`<span class="jc-tag"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z\"/><line x1=\"7\" y1=\"7\" x2=\"7.01\" y2=\"7\"/></svg> ${esc(j.pay)}</span>`:''}
       </div>
     </div>`).join('');
 }
@@ -1970,7 +1970,7 @@ async function openFindJobs(){
     if(!found.length){body.innerHTML='<div style="text-align:center;color:var(--t2);padding:40px 20px">No jobs found right now. Try again later.</div>';return;}
     found.forEach((j,i)=>{
       const div=document.createElement('div');div.className='fr';
-      div.innerHTML=`<div class="fr-top"><div class="fr-title">${esc(j.title)}</div><button class="fr-save" id="frs${i}" onclick="saveFoundJob(${i})">Save</button></div><div class="fr-co">${esc(j.company)} · ${esc(j.location)}</div><div class="fr-desc">${esc(j.description)}</div><div class="fr-tags">${j.pay?`<span class="fr-tag">💰 ${esc(j.pay)}</span>`:''}${(j.tags||[]).map(t=>`<span class="fr-tag">${esc(t)}</span>`).join('')}${j.applyUrl?`<a href="${esc(j.applyUrl)}" target="_blank" style="font-size:0.68rem;color:var(--acc);text-decoration:none;">Apply →</a>`:''}</div>`;
+      div.innerHTML=`<div class="fr-top"><div class="fr-title">${esc(j.title)}</div><button class="fr-save" id="frs${i}" onclick="saveFoundJob(${i})">Save</button></div><div class="fr-co">${esc(j.company)} · ${esc(j.location)}</div><div class="fr-desc">${esc(j.description)}</div><div class="fr-tags">${j.pay?`<span class="fr-tag"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z\"/><line x1=\"7\" y1=\"7\" x2=\"7.01\" y2=\"7\"/></svg> ${esc(j.pay)}</span>`:''}${(j.tags||[]).map(t=>`<span class="fr-tag">${esc(t)}</span>`).join('')}${j.applyUrl?`<a href="${esc(j.applyUrl)}" target="_blank" style="font-size:0.68rem;color:var(--acc);text-decoration:none;">Apply →</a>`:''}</div>`;
       body.appendChild(div);
     });
   }catch(e){body.innerHTML=`<div style="text-align:center;color:var(--red);padding:40px 20px">Error: ${esc(e.message)}</div>`;}
@@ -2301,7 +2301,7 @@ function calDisconnect(){
 
 async function loadCal(days=7){
   const list=document.getElementById('cal-list');
-  if(!calConnected){ list.innerHTML='<div class="empty"><div class="empty-i">📅</div><div class="empty-t">Connect your calendar</div><div class="empty-s">Tap Connect Google above</div></div>'; return; }
+  if(!calConnected){ list.innerHTML='<div class="empty"><div class="empty-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-t">Connect your calendar</div><div class="empty-s">Tap Connect Google above</div></div>'; return; }
   list.innerHTML='<div style="padding:20px;text-align:center;color:var(--t3);font-size:14px;">Loading…</div>';
   try{
     const r=await bFetch('/gcal/events?days='+days);
@@ -2314,7 +2314,7 @@ async function loadCal(days=7){
 
 function renderCalEvents(container, events){
   if(!events.length){
-    container.innerHTML='<div class="empty"><div class="empty-i">📅</div><div class="empty-t">No upcoming events</div><div class="empty-s">Tap + Event to add one</div></div>';
+    container.innerHTML='<div class="empty"><div class="empty-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-t">No upcoming events</div><div class="empty-s">Tap + Event to add one</div></div>';
     return;
   }
   let html=''; let lastDay='';
@@ -2328,7 +2328,7 @@ function renderCalEvents(container, events){
       <div class="cal-time-col"><div class="cal-time">${timeStr}</div>${!e.allDay?`<div class="cal-bar"></div><div class="cal-time">${endStr}</div>`:''}</div>
       <div class="cal-body">
         <div class="cal-title">${escHtml(e.title)}</div>
-        ${e.location?`<div class="cal-meta">📍 ${escHtml(e.location)}</div>`:''}
+        ${e.location?`<div class="cal-meta"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/></svg> ${escHtml(e.location)}</div>`:''}
         ${e.desc?`<div class="cal-meta">${escHtml(e.desc.slice(0,80))}${e.desc.length>80?'…':''}</div>`:''}
       </div>
       ${e.allDay?'<div class="cal-allday">All day</div>':''}
@@ -2348,7 +2348,7 @@ async function loadAgentCal(){
     if(!evts.length){ list.innerHTML='<div class="agent-cal-r"><span class="agent-cal-i">✓</span><div class="agent-cal-l"><div class="agent-cal-title" style="color:var(--t3)">No events today or tomorrow</div></div></div>'; return; }
     list.innerHTML=evts.map(e=>{
       const t=new Date(e.start).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-      return `<div class="agent-cal-r"><span class="agent-cal-i">📅</span><div class="agent-cal-l"><div class="agent-cal-title">${escHtml(e.title)}</div><div class="agent-cal-time">${e.allDay?'All day':t}</div></div></div>`;
+      return `<div class="agent-cal-r"><span class="agent-cal-i"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/></svg></span><div class="agent-cal-l"><div class="agent-cal-title">${escHtml(e.title)}</div><div class="agent-cal-time">${e.allDay?'All day':t}</div></div></div>`;
     }).join('');
   }catch(e){}
 }
@@ -2455,7 +2455,7 @@ async function gmailCheckStatus(){
       txt.textContent = 'Not connected';
       btn.textContent = 'Connect Gmail';
       btn.onclick = gmailConnect;
-      document.getElementById('gm-list').innerHTML='<div class="empty"><div class="empty-i">✉️</div><div class="empty-t">Connect Gmail</div><div class="empty-s">Tap Connect Gmail above</div></div>';
+      document.getElementById('gm-list').innerHTML='<div class="empty"><div class="empty-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="empty-t">Connect Gmail</div><div class="empty-s">Tap Connect Gmail above</div></div>';
     }
   }catch(e){}
 }
@@ -2513,7 +2513,7 @@ function gmailTab(tab){
 async function gmailLoadTab(tab){
   const list=document.getElementById('gm-list');
   if(!gmailConnected){
-    list.innerHTML='<div class="empty"><div class="empty-i">✉️</div><div class="empty-t">Connect Gmail</div><div class="empty-s">Tap Connect Gmail above</div></div>';
+    list.innerHTML='<div class="empty"><div class="empty-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="empty-t">Connect Gmail</div><div class="empty-s">Tap Connect Gmail above</div></div>';
     return;
   }
   list.innerHTML='<div style="padding:20px;text-align:center;color:var(--t3);font-size:14px;">Loading…</div>';
@@ -2529,7 +2529,7 @@ async function gmailLoadTab(tab){
       else badge.style.display='none';
     }
     if(!emails.length){
-      list.innerHTML='<div class="empty"><div class="empty-i">✉️</div><div class="empty-t">No emails</div></div>';
+      list.innerHTML='<div class="empty"><div class="empty-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="empty-t">No emails</div></div>';
       return;
     }
     let html='';
@@ -2662,7 +2662,7 @@ async function finLoadBalance(){
     if(d.error){el.innerHTML='<div style="padding:16px;color:var(--t2);font-size:14px;">'+d.error+'</div>';return;}
     const accounts = d.accounts||[];
     if(!accounts.length){el.innerHTML='<div style="padding:16px;color:var(--t2);">No accounts found</div>';return;}
-    const icons = {checking:'🏦',savings:'💰',credit:'💳',loan:'📋',investment:'📈'};
+    const icons = {checking:'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"3\" y1=\"22\" x2=\"21\" y2=\"22\"/><line x1=\"6\" y1=\"18\" x2=\"6\" y2=\"11\"/><line x1=\"10\" y1=\"18\" x2=\"10\" y2=\"11\"/><line x1=\"14\" y1=\"18\" x2=\"14\" y2=\"11\"/><line x1=\"18\" y1=\"18\" x2=\"18\" y2=\"11\"/><polygon points=\"12 2 20 7 4 7\"/></svg>',savings:'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"1\" x2=\"12\" y2=\"23\"/><path d=\"M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6\"/></svg>',credit:'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"1\" y=\"4\" width=\"22\" height=\"16\" rx=\"2\"/><line x1=\"1\" y1=\"10\" x2=\"23\" y2=\"10\"/></svg>',loan:'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"8\" y1=\"6\" x2=\"21\" y2=\"6\"/><line x1=\"8\" y1=\"12\" x2=\"21\" y2=\"12\"/><line x1=\"8\" y1=\"18\" x2=\"21\" y2=\"18\"/><line x1=\"3\" y1=\"6\" x2=\"3.01\" y2=\"6\"/><line x1=\"3\" y1=\"12\" x2=\"3.01\" y2=\"12\"/><line x1=\"3\" y1=\"18\" x2=\"3.01\" y2=\"18\"/></svg>',investment:'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"23 6 13.5 15.5 8.5 10.5 1 18\"/><polyline points=\"17 6 23 6 23 12\"/></svg>'};
     el.innerHTML = accounts.map(a=>{
       const icon = icons[a.subtype]||icons[a.type]||'🏦';
       const avail = a.available!=null?`<div class="fin-acct-sub">$${a.available.toLocaleString('en-US',{minimumFractionDigits:2})} available</div>`:'';
@@ -2680,7 +2680,7 @@ async function finLoadTxns(days=30){
     if(d.error){el.innerHTML='<div style="padding:16px;color:var(--t2);">'+d.error+'</div>';return;}
     const txns = d.transactions||[];
     if(!txns.length){el.innerHTML='<div style="padding:16px;color:var(--t2);">No transactions found</div>';return;}
-    const catIcons={'Food and Drink':'🍔','Travel':'✈️','Shops':'🛒','Recreation':'🎮','Service':'⚙️','Healthcare':'💊','Transfer':'💸','Deposit':'💵','Payment':'💳'};
+    const catIcons={'Food and Drink':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z\"/><line x1=\"7\" y1=\"7\" x2=\"7.01\" y2=\"7\"/></svg>','Travel':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z\"/><line x1=\"7\" y1=\"7\" x2=\"7.01\" y2=\"7\"/></svg>','Shops':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z\"/><line x1=\"7\" y1=\"7\" x2=\"7.01\" y2=\"7\"/></svg>','Recreation':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z\"/><line x1=\"7\" y1=\"7\" x2=\"7.01\" y2=\"7\"/></svg>','Service':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83\"/></svg>','Healthcare':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z\"/><line x1=\"7\" y1=\"7\" x2=\"7.01\" y2=\"7\"/></svg>','Transfer':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 12h-4l-3 9L9 3l-3 9H2\"/></svg>','Deposit':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"12\" y1=\"1\" x2=\"12\" y2=\"23\"/><path d=\"M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6\"/></svg>','Payment':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"1\" y=\"4\" width=\"22\" height=\"16\" rx=\"2\"/><line x1=\"1\" y1=\"10\" x2=\"23\" y2=\"10\"/></svg>'};
     el.innerHTML = txns.map(t=>{
       const cat = (t.category||[])[0]||'';
       const icon = catIcons[cat]||'💸';
@@ -2764,9 +2764,9 @@ async function schedLoad(){
     }
     _el('sched-clear-btn').style.display='';
     _el('sched-sub').textContent=upcoming.length+' upcoming shift'+(upcoming.length>1?'s':'');
-    const dayEmoji={'Monday':'📅','Tuesday':'📅','Wednesday':'📅','Thursday':'📅','Friday':'📅','Saturday':'🌙','Sunday':'🌙'};
+    const dayEmoji={'Monday':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/></svg>','Tuesday':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/></svg>','Wednesday':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/></svg>','Thursday':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/></svg>','Friday':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/></svg>','Saturday':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z\"/></svg>','Sunday':'<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z\"/></svg>'};
     list.innerHTML=upcoming.map(s=>{
-      const em=dayEmoji[s.day]||'📅';
+      const em=dayEmoji[s.day]||'';
       const dateObj=new Date(s.date+'T12:00:00');
       const fmt=dateObj.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
       const isNext=s===upcoming[0];
