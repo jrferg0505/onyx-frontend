@@ -1287,6 +1287,35 @@ function detectAgents(text){
 // Keep SYSBASE as alias so WhatsApp inline ref still works
 const SYSBASE=_BASE_PERSONALITY;
 
+// ── MODEL ROUTING ────────────────────────────────────────────────────────────
+const MODELS={
+  simple:  'claude-haiku-4-5-20251001',  // fast + cheap
+  normal:  'claude-sonnet-4-6',           // balanced
+  complex: 'claude-opus-4-6'             // powerful + expensive
+};
+
+function classifyComplexity(text, agents){
+  const t=text.toLowerCase();
+  const words=text.trim().split(/\s+/).length;
+
+  // Home is always simple — just toggle lights
+  if(agents.length===1&&agents[0]==='home') return 'simple';
+
+  // Explicit complexity → Opus
+  if(/\b(think (hard|carefully|deeply|through)|analyze|analysis|in depth|in detail|comprehensive|step.by.step|break (it |this )?down|explain (everything|thoroughly|fully)|write (a |an |me )?(full|complete|detailed|long)|draft (a |an )?(full|detailed|long|professional|formal)|compose (a |an )|research (deeply|thoroughly|everything))\b/.test(t))
+    return 'complex';
+  if(words>50) return 'complex'; // long messages signal complex intent
+  if(agents.includes('gmail')&&/\b(write|draft|compose|reply)\b/.test(t)) return 'complex'; // writing emails
+
+  // Simple markers → Haiku
+  if(words<=6) return 'simple';
+  if(/^(yes|no|ok|okay|thanks|got it|sure|nope|yep|correct|wrong|nevermind|cancel)[\s.!]*$/i.test(text)) return 'simple';
+  if(/\b(what (time|day|date|is today)|turn (on|off)|next shift|how many days|remind me|set (a )?timer)\b/.test(t)) return 'simple';
+
+  // Default → Sonnet
+  return 'normal';
+}
+
 let key=localStorage.getItem('reed_key')||'';
 let msgs=[],busy=false,editJob=null,activeConv=null,activeProj=null;
 let pendingAttachment=null;
@@ -1558,13 +1587,16 @@ async function callAPI(messages){
   const agents=detectAgents(last);
   const agentKey=agents.length>1?'master':agents[0];
 
-  // Model selection: home can stay haiku; finance/multi/search gets sonnet
+  // 3-tier model routing
   const useSearch=needsSearch(last)&&agentKey!=='home';
-  const useSonnet=useSearch||needsLong(last)||messages.length>6||agents.includes('finance')||agents.length>1;
-  const model=useSonnet?'claude-sonnet-4-5':'claude-haiku-4-5-20251001';
+  let complexity=classifyComplexity(last,agents);
+  // Web search needs at least Sonnet for quality synthesis
+  if(useSearch&&complexity==='simple') complexity='normal';
+  const model=MODELS[complexity];
+  const maxTok=complexity==='complex'?2048:complexity==='simple'?256:512;
 
   const sys=await buildAgentSys(agents,last);
-  const body={model,max_tokens:needsLong(last)?1024:512,system:sys,messages,use_search:useSearch,api_key:key,_agent:agentKey};
+  const body={model,max_tokens:maxTok,system:sys,messages,use_search:useSearch,api_key:key,_agent:agentKey,_complexity:complexity};
   let res, d;
   // retry up to 2 times with 90s timeout (Render free tier cold start)
   for(let attempt=0; attempt<2; attempt++){
