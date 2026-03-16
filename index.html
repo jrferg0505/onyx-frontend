@@ -157,6 +157,7 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 .src:active{background:var(--g2);}
 .sdot{width:3px;height:3px;background:var(--t3);border-radius:50%;flex-shrink:0;}
 .stitle{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.agent-badge{display:inline-block;font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;}
 
 #thinking{display:none;align-items:flex-start;gap:8px;padding:2px 0;}
 #tbub{background:var(--g1);border-radius:20px 20px 20px 5px;padding:12px 15px;display:flex;gap:5px;align-items:center;}
@@ -1251,13 +1252,40 @@ function bFetch(path,opts={}){
   const hdrs={'X-API-Key':ONYX_API_KEY,...(opts.headers||{})};
   return fetch(BACKEND+path,{...opts,headers:hdrs});
 }
-const SYSBASE=`You are Onyx — Reed's personal AI. Not a chatbot, not a corporate assistant. Think of yourself as that one friend who's brutally honest, actually knows what they're talking about, and genuinely gives a damn about how things turn out for Reed.
+// ── MULTI-AGENT SYSTEM ──────────────────────────────────────────────────────
+const _BASE_PERSONALITY = `You are Onyx — Reed's personal AI. Not a chatbot, not a corporate assistant. Think of yourself as that one friend who's brutally honest, actually knows what they're talking about, and genuinely gives a damn about how things turn out for Reed.
 
 Reed Ferguson: works the early shift at a donut shop in Indianapolis. Hunting for an office job — $18+/hr, no degree required, 9-5 M-F. Saving up for his own car. Teaching himself AI and tech. Big goals, actively building toward them.
 
-How you talk: Direct and confident — get to the point, no fluff. Smart-friend energy — not a yes-man, not a corporate drone. Dry wit when it fits. Serious when it matters. If Reed says something off, call it out — respectfully but honestly. When he hits a goal or does something good, acknowledge it like you mean it — not "Great job!" but something real. Short answers for simple questions — 2-3 sentences max. Go longer only when detail is genuinely needed. Never start with filler: no "Sure!", "Great question!", "Certainly!", "Of course!". You are Onyx. Never say "as an AI" or "I don't have feelings" — just respond naturally.
+How you talk: Direct and confident — get to the point, no fluff. Smart-friend energy — not a yes-man, not a corporate drone. Dry wit when it fits. Serious when it matters. If Reed says something off, call it out — respectfully but honestly. When he hits a goal or does something good, acknowledge it like you mean it — not "Great job!" but something real. Short answers for simple questions — 2-3 sentences max. Go longer only when detail is genuinely needed. Never start with filler: no "Sure!", "Great question!", "Certainly!", "Of course!". You are Onyx. Never say "as an AI" or "I don't have feelings" — just respond naturally.`;
 
-You can search the web for jobs, news, and live data. You have access to Reed's Google Calendar — real event data is injected when he asks about his schedule. You have access to Reed's Gmail — real email data is injected when he asks about messages. You have access to Reed's bank account via Plaid — real balance and transaction data is injected when he asks about money. You have access to Reed's work schedule — real shift data is injected when he asks about work or pay.`;
+const AGENT_PROMPTS = {
+  research:  `RESEARCH AGENT: Handle general knowledge, explanations, advice, job tips, AI/tech questions, and anything else. Search the web for live data when needed. Be sharp and specific — no vague generalities.`,
+  calendar:  `CALENDAR AGENT: You specialize in Reed's schedule, shifts, and time management. Real calendar and shift data is injected below. Be specific about dates and times. Help Reed plan, spot conflicts, and never miss a shift. Format times clearly (e.g. "Mon Mar 18, 4–11am").`,
+  gmail:     `GMAIL AGENT: You specialize in Reed's email. Real inbox data is injected below. Flag what actually matters — job opportunities, important notices, anything requiring action. When drafting, write like Reed talks: direct and professional without being stiff.`,
+  finance:   `FINANCE AGENT: You specialize in Reed's money. Real bank data is injected below. Be specific with numbers. Track spending patterns and help him save toward his car goal. Call out wasteful spending if you see it.`,
+  home:      `HOME AGENT: You specialize in Reed's smart home via Govee. Control lights and devices directly. When Reed says "turn on the lights" or "make it dim" — do it and confirm what changed. Be action-oriented and brief.`,
+  master:    `MASTER AGENT: This question spans multiple areas — calendar, email, finances, and/or home. Real data for all relevant areas is injected below. Handle each part precisely and combine into one clean response. Don't repeat yourself or pad the answer.`
+};
+
+// Route a message to the right agent(s) — pure keyword matching, zero extra API calls
+function detectAgents(text){
+  const t=text.toLowerCase();
+  const agents=new Set();
+  if(/\b(schedule|shift|work|calendar|event|appointment|when (do|am|is|does)|what.s on|my day|today|tomorrow|next week|upcoming|plans|free time|availability)\b/.test(t))
+    agents.add('calendar');
+  if(/\b(email|inbox|gmail|message|mail|unread|reply|send.*(email|message)|wrote to|hear(d)? from)\b/.test(t))
+    agents.add('gmail');
+  if(/\b(balance|spend|spent|transaction|bank|money|pay|budget|\$\d|how much (have i|did i|do i)|afford|saving|savings|account|plaid)\b/.test(t))
+    agents.add('finance');
+  if(/\b(light|lamp|govee|turn (on|off|the)|dim|bright|color|bedroom|living room|lights)\b/.test(t))
+    agents.add('home');
+  if(!agents.size) agents.add('research');
+  return [...agents];
+}
+
+// Keep SYSBASE as alias so WhatsApp inline ref still works
+const SYSBASE=_BASE_PERSONALITY;
 
 let key=localStorage.getItem('reed_key')||'';
 let msgs=[],busy=false,editJob=null,activeConv=null,activeProj=null;
@@ -1316,13 +1344,19 @@ inpEl.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventD
 function go(t){inpEl.value=t;inpEl.dispatchEvent(new Event('input'));sendMsg();}
 function scroll(){requestAnimationFrame(()=>{_el('msgs').scrollTop=_el('msgs').scrollHeight;});}
 
-function addMsg(role,html,sources){
+const AGENT_LABELS={research:'Research',calendar:'Calendar',gmail:'Gmail',finance:'Finance',home:'Home',master:'Multi'};
+function addMsg(role,html,sources,agent){
   const d=document.createElement('div');d.className='msg '+(role==='user'?'u':'a');
   const row=document.createElement('div');row.className='mrow';
   const av=document.createElement('div');
   av.className=role==='user'?'av me':'av ai';
   av.innerHTML=role==='user'?'R':'<svg width="11" height="11" viewBox="0 0 512 512"><path d="M155 148 Q155 108 256 108 Q357 108 357 148 L368 340 Q368 400 256 408 Q144 400 144 340 Z" fill="white" opacity="0.8"/><path d="M170 256 Q170 244 256 244 Q342 244 342 256 L342 288 Q342 300 256 300 Q170 300 170 288 Z" fill="white"/></svg>';
-  const b=document.createElement('div');b.className='bub';b.innerHTML=html;
+  const b=document.createElement('div');b.className='bub';
+  if(role==='ai'&&agent&&agent!=='research'){
+    b.innerHTML=`<div class="agent-badge">${esc(AGENT_LABELS[agent]||agent)}</div>`+html;
+  }else{
+    b.innerHTML=html;
+  }
   row.appendChild(av);row.appendChild(b);d.appendChild(row);
   if(sources?.length){
     const sd=document.createElement('div');sd.className='srcs';
@@ -1424,13 +1458,25 @@ async function generateMorningBriefing(forWhatsApp=false){
   return msg;
 }
 
-async function buildSys(lastMsg=''){
-  let s=SYSBASE;
+// Build system prompt for the detected agent(s), injecting only relevant context
+async function buildAgentSys(agents, lastMsg=''){
+  const isMulti=agents.length>1;
+  const agentKey=isMulti?'master':agents[0];
+
+  // Base personality + agent specialization
+  let s=_BASE_PERSONALITY+'\n\n'+AGENT_PROMPTS[agentKey];
+  if(isMulti) agents.forEach(a=>{ if(AGENT_PROMPTS[a]!==AGENT_PROMPTS.master) s+='\n\n'+AGENT_PROMPTS[a]; });
+
+  // Memories (always)
   const mems=getMems();
   if(mems.length)s+='\n\nRemember About Reed:\n'+mems.map(m=>`- [${m.category}] ${m.content}`).join('\n');
+
+  // Active project
   const proj=getProjects().find(p=>p.id===activeProj);
   if(proj)s+=`\n\nActive Project: "${proj.name}" — ${proj.description}`;
-  if(needsCalendar(lastMsg)){
+
+  // Calendar context — only for calendar agent
+  if(agents.includes('calendar')){
     try{
       const r=await bFetch('/gcal/events?days=7');
       const d=await r.json();
@@ -1444,8 +1490,24 @@ async function buildSys(lastMsg=''){
         s+='\n\nReed\'s Calendar: No events in the next 7 days.';
       }
     }catch(e){}
+    // Shifts belong to calendar agent
+    try{
+      const r=await bFetch('/schedule/shifts');
+      const d=await r.json();
+      const today=new Date().toISOString().slice(0,10);
+      const upcoming=(d.shifts||[]).filter(sh=>sh.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
+      if(upcoming.length){
+        const lines=upcoming.slice(0,7).map(sh=>`- ${sh.day} ${sh.date}: ${fmtTime(sh.start)}–${fmtTime(sh.end)} (${sh.hours}h)`);
+        s+=`\n\nReed's Work Shifts:\n${lines.join('\n')}`;
+        if(d.paycheck!=null)s+=`\nPaycheck: Gross $${d.paycheck.gross.toFixed(2)}, take-home ~$${d.paycheck.net.toFixed(2)} after taxes (${d.total_hours}h × $${d.hourly_rate}/hr)`;
+      }else{
+        s+='\n\nWork Shifts: No upcoming shifts synced yet.';
+      }
+    }catch(e){}
   }
-  if(needsGmail(lastMsg)){
+
+  // Gmail context — only for gmail agent
+  if(agents.includes('gmail')){
     try{
       const r=await bFetch('/gmail/inbox?max=5');
       const d=await r.json();
@@ -1457,7 +1519,9 @@ async function buildSys(lastMsg=''){
       }
     }catch(e){}
   }
-  if(needsBankData(lastMsg)){
+
+  // Finance context — only for finance agent
+  if(agents.includes('finance')){
     try{
       const isSpend=/spent?|spend|transaction/i.test(lastMsg);
       const endpoint=isSpend?'/plaid/transactions?days=7':'/plaid/balance';
@@ -1473,35 +1537,34 @@ async function buildSys(lastMsg=''){
           s+=`\n\nReed's Bank Balances:\n${lines.join('\n')}`;
         }
       }else if(d.error==='not_connected'){
-        s+='\n\nBank: Not connected yet (Reed has not linked a bank account in Onyx Finance panel).';
+        s+='\n\nBank: Not connected (link in Finance panel).';
       }
     }catch(e){}
   }
-  if(needsShiftData(lastMsg)){
-    try{
-      const r=await bFetch('/schedule/shifts');
-      const d=await r.json();
-      const today=new Date().toISOString().slice(0,10);
-      const upcoming=(d.shifts||[]).filter(s=>s.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
-      if(upcoming.length){
-        const lines=upcoming.slice(0,7).map(s=>`- ${s.day} ${s.date}: ${fmtTime(s.start)}–${fmtTime(s.end)} (${s.hours}h)`);
-        s+=`\n\nReed's Work Schedule (upcoming shifts):\n${lines.join('\n')}`;
-        if(d.paycheck!=null)s+=`\nPaycheck: Gross $${d.paycheck.gross.toFixed(2)}, take-home ~$${d.paycheck.net.toFixed(2)} after taxes (${d.total_hours}h × $${d.hourly_rate}/hr)`;
-      }else{
-        s+='\n\nReed\'s Work Schedule: No upcoming shifts synced yet.';
-      }
-    }catch(e){}
-  }
+
   return s;
+}
+
+// Legacy alias used by WhatsApp inline reply and voice
+async function buildSys(lastMsg=''){
+  return buildAgentSys(detectAgents(lastMsg), lastMsg);
 }
 
 async function callAPI(messages){
   const lastContent=messages[messages.length-1]?.content||'';
   const last=Array.isArray(lastContent)?lastContent.find(b=>b.type==='text')?.text||'':lastContent;
-  const useSearch=needsSearch(last);
-  const useSonnet=useSearch||needsLong(last)||messages.length>6;
+
+  // Route to specialized agent(s)
+  const agents=detectAgents(last);
+  const agentKey=agents.length>1?'master':agents[0];
+
+  // Model selection: home can stay haiku; finance/multi/search gets sonnet
+  const useSearch=needsSearch(last)&&agentKey!=='home';
+  const useSonnet=useSearch||needsLong(last)||messages.length>6||agents.includes('finance')||agents.length>1;
   const model=useSonnet?'claude-sonnet-4-5':'claude-haiku-4-5-20251001';
-  const body={model,max_tokens:needsLong(last)?1024:512,system:await buildSys(last),messages,use_search:useSearch,api_key:key};
+
+  const sys=await buildAgentSys(agents,last);
+  const body={model,max_tokens:needsLong(last)?1024:512,system:sys,messages,use_search:useSearch,api_key:key,_agent:agentKey};
   let res, d;
   // retry up to 2 times with 90s timeout (Render free tier cold start)
   for(let attempt=0; attempt<2; attempt++){
@@ -1524,6 +1587,7 @@ async function callAPI(messages){
   }
   d=await res.json();
   if(d.error)throw new Error(d.error.message||d.error);
+  d._agent=agentKey; // tag response with routing decision
   return d;
 }
 
@@ -1673,6 +1737,7 @@ async function sendMsg(){
   }
   try{
     let data=await callAPI(msgs),finalText='',sources=[];
+    const respondingAgent=data._agent||'research';
     if(data.stop_reason==='tool_use'){
       let sq='The Web';
       for(const b of data.content){
@@ -1688,7 +1753,7 @@ async function sendMsg(){
       if(b.type==='web_search_tool_result')for(const r of b.content||[])if(r.url&&r.title&&!sources.find(s=>s.url===r.url))sources.push({url:r.url,title:r.title});
     }
     msgs.push({role:'assistant',content:finalText||'Something went wrong.'});
-    setThink(false);addMsg('ai',render(msgs[msgs.length-1].content),sources);speakResponse(msgs[msgs.length-1].content);
+    setThink(false);addMsg('ai',render(msgs[msgs.length-1].content),sources,respondingAgent);speakResponse(msgs[msgs.length-1].content);
     saveConv();renderHist();
     _bgExtract(text); // background memory extraction — fire and forget
   }catch(e){
