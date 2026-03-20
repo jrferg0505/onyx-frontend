@@ -348,26 +348,24 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 /* ── LOGIN SCREEN ── */
 #login-screen{position:fixed;inset:0;background:#000;z-index:99999;display:flex;align-items:center;justify-content:center;padding:28px;}
 #login-screen.hidden{display:none;}
-.lbox{display:flex;flex-direction:column;align-items:center;width:100%;max-width:310px;}
-.lbox-logo{width:64px;height:64px;margin-bottom:22px;}
-.lbox-title{font-size:28px;font-weight:700;color:#fff;letter-spacing:-.5px;}
-.lbox-sub{font-size:14px;color:rgba(255,255,255,.4);margin:6px 0 28px;text-align:center;}
-#login-pw{width:100%;box-sizing:border-box;padding:15px 16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#fff;font-size:17px;text-align:center;outline:none;-webkit-appearance:none;margin-bottom:12px;font-family:var(--font);}
-#login-pw::placeholder{letter-spacing:0;color:rgba(255,255,255,.28);font-size:15px;}
-#login-pw:focus{border-color:rgba(255,255,255,.28);}
-.lbox-remember{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 2px;margin-bottom:22px;}
-.lbox-rlbl{font-size:14px;color:rgba(255,255,255,.55);}
-.ltoggle{position:relative;width:44px;height:26px;flex-shrink:0;}
-.ltoggle input{opacity:0;width:0;height:0;position:absolute;}
-.lslider{position:absolute;inset:0;background:rgba(255,255,255,.15);border-radius:13px;cursor:pointer;transition:background .2s;}
-.lslider:before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.4);}
-.ltoggle input:checked~.lslider{background:#30d158;}
-.ltoggle input:checked~.lslider:before{transform:translateX(18px);}
-#login-btn{width:100%;padding:15px;background:#fff;color:#000;border:none;border-radius:14px;font-size:17px;font-weight:600;cursor:pointer;font-family:var(--font);letter-spacing:-.2px;}
-#login-btn:active{opacity:.82;}
-#login-btn:disabled{opacity:.45;cursor:default;}
-#login-err{font-size:13px;color:#ff453a;min-height:18px;margin-top:10px;text-align:center;}
-#login-setup-note{font-size:12px;color:rgba(255,255,255,.28);margin-top:14px;text-align:center;max-width:240px;line-height:1.5;}
+.lbox{display:flex;flex-direction:column;align-items:center;width:100%;max-width:280px;}
+.lbox-logo{width:60px;height:60px;margin-bottom:18px;}
+.lbox-title{font-size:26px;font-weight:700;color:#fff;letter-spacing:-.5px;}
+.lbox-sub{font-size:13px;color:rgba(255,255,255,.38);margin:5px 0 28px;text-align:center;}
+/* PIN dots */
+.pin-dots{display:flex;gap:16px;margin-bottom:32px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.22);transition:background .12s,transform .1s;}
+.pin-dot.filled{background:#fff;border-color:#fff;transform:scale(1.1);}
+/* PIN pad grid */
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;}
+.pkey{height:72px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:28px;font-weight:400;cursor:pointer;font-family:var(--font);letter-spacing:-.5px;transition:background .12s,transform .08s;display:flex;flex-direction:column;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;user-select:none;}
+.pkey:active,.pkey.pressed{background:rgba(255,255,255,.22);transform:scale(.92);}
+.pkey.pkey-empty{background:transparent;cursor:default;pointer-events:none;}
+.pkey.pkey-del{font-size:22px;}
+.pkey-sub{font-size:9px;letter-spacing:.8px;opacity:.45;margin-top:2px;font-weight:500;}
+#login-err{font-size:13px;color:#ff453a;min-height:18px;margin-top:18px;text-align:center;}
+#login-setup-note{font-size:12px;color:rgba(255,255,255,.28);margin-top:10px;text-align:center;max-width:240px;line-height:1.5;}
+@keyframes pinShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
 /* ── KEY SCREEN ── */
 #ksc{display:none;position:fixed;inset:0;background:#000;z-index:300;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;}
 #ksc.on{display:flex;}
@@ -643,13 +641,27 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
       <circle cx="32" cy="32" r="8" fill="white" fill-opacity="0.9"/>
     </svg>
     <div class="lbox-title">Onyx</div>
-    <div class="lbox-sub">Your personal AI — enter password to continue</div>
-    <input id="login-pw" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
-    <div class="lbox-remember">
-      <span style="color:rgba(255,255,255,.65);font-size:14px">Remember this device</span>
-      <label class="ltoggle"><input type="checkbox" id="login-remember" checked><span class="lslider"></span></label>
+    <div class="lbox-sub" id="login-sub">Enter your PIN</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
     </div>
-    <button id="login-btn" onclick="doLogin()">Unlock</button>
+    <div class="pin-pad">
+      <button class="pkey" onclick="pinKey('1')">1</button>
+      <button class="pkey" onclick="pinKey('2')">2<div class="pkey-sub">ABC</div></button>
+      <button class="pkey" onclick="pinKey('3')">3<div class="pkey-sub">DEF</div></button>
+      <button class="pkey" onclick="pinKey('4')">4<div class="pkey-sub">GHI</div></button>
+      <button class="pkey" onclick="pinKey('5')">5<div class="pkey-sub">JKL</div></button>
+      <button class="pkey" onclick="pinKey('6')">6<div class="pkey-sub">MNO</div></button>
+      <button class="pkey" onclick="pinKey('7')">7<div class="pkey-sub">PQRS</div></button>
+      <button class="pkey" onclick="pinKey('8')">8<div class="pkey-sub">TUV</div></button>
+      <button class="pkey" onclick="pinKey('9')">9<div class="pkey-sub">WXYZ</div></button>
+      <button class="pkey pkey-empty"></button>
+      <button class="pkey" onclick="pinKey('0')">0</button>
+      <button class="pkey pkey-del" onclick="pinDel()">⌫</button>
+    </div>
     <div id="login-err"></div>
     <div id="login-setup-note"></div>
   </div>
@@ -1299,26 +1311,74 @@ function bFetch(path,opts={}){
   return fetch(BACKEND+path,{...opts,headers:hdrs});
 }
 
-// ── AUTH ─────────────────────────────────────────────────────────────────────
+// ── AUTH / PIN ────────────────────────────────────────────────────────────────
+let _pin='';
+
+function pinKey(d){
+  if(_pin.length>=4) return;
+  _pin+=d;
+  _renderDots();
+  if(_pin.length===4) setTimeout(_submitPin,120);
+}
+
+function pinDel(){
+  if(!_pin.length) return;
+  _pin=_pin.slice(0,-1);
+  _renderDots();
+  document.getElementById('login-err').textContent='';
+}
+
+function _renderDots(){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('pd'+i);
+    if(d) d.classList.toggle('filled',i<_pin.length);
+  }
+}
+
+async function _submitPin(){
+  const err=document.getElementById('login-err');
+  err.textContent='';
+  try{
+    const r=await fetch(BACKEND+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':ONYX_API_KEY},body:JSON.stringify({pin:_pin})});
+    const d=await r.json();
+    if(d.token){
+      sessionToken=d.token;
+      localStorage.setItem('onyx_session',sessionToken);
+      _pin='';_renderDots();
+      _onAuthSuccess();
+    }else{
+      err.textContent=d.error||'Wrong PIN.';
+      // shake dots then clear
+      const dots=document.querySelector('.pin-dots');
+      if(dots){dots.style.animation='none';dots.offsetWidth;dots.style.animation='pinShake .35s ease';}
+      setTimeout(()=>{_pin='';_renderDots();},400);
+    }
+  }catch(e){
+    err.textContent='Connection error.';
+    _pin='';_renderDots();
+  }
+}
+
 async function initAuth(){
-  // Check if backend has a password set up
+  // Check if PIN is set — show setup hint if not
   try{
     const r=await fetch(BACKEND+'/auth/status',{headers:{'X-API-Key':ONYX_API_KEY}});
     if(r.ok){
       const d=await r.json();
       if(!d.setup){
+        const sub=document.getElementById('login-sub');
+        if(sub) sub.textContent='Set your PIN';
         const note=document.getElementById('login-setup-note');
-        if(note) note.textContent='First time? Set your password above — you\'ll use it to log in on any device.';
+        if(note) note.textContent='First time — enter a 4-digit PIN you\'ll use on every device.';
       }
     }
   }catch(e){}
-  // If we already have a session token, verify it's still valid
+  // Verify existing session token
   if(sessionToken){
     try{
       const r=await fetch(BACKEND+'/auth/verify',{headers:{'X-API-Key':ONYX_API_KEY,'X-Session-Token':sessionToken}});
       if(r.ok){_onAuthSuccess();return;}
     }catch(e){}
-    // Token invalid or expired — clear it
     sessionToken='';
     localStorage.removeItem('onyx_session');
     sessionStorage.removeItem('onyx_session');
@@ -1329,39 +1389,12 @@ async function initAuth(){
 function _showLogin(){
   const s=document.getElementById('login-screen');
   if(s) s.classList.remove('hidden');
-  setTimeout(()=>{const pw=document.getElementById('login-pw');if(pw)pw.focus();},150);
+  _pin='';_renderDots();
 }
 
 function _hideLogin(){
   const s=document.getElementById('login-screen');
   if(s) s.classList.add('hidden');
-}
-
-async function doLogin(){
-  const pw=document.getElementById('login-pw');
-  const err=document.getElementById('login-err');
-  const remember=document.getElementById('login-remember');
-  const btn=document.getElementById('login-btn');
-  if(!pw||!pw.value.trim()){if(err)err.textContent='Enter your password.';return;}
-  if(btn){btn.disabled=true;btn.textContent='Checking...';}
-  if(err) err.textContent='';
-  try{
-    const r=await fetch(BACKEND+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':ONYX_API_KEY},body:JSON.stringify({password:pw.value})});
-    const d=await r.json();
-    if(d.token){
-      sessionToken=d.token;
-      if(remember&&remember.checked) localStorage.setItem('onyx_session',sessionToken);
-      else sessionStorage.setItem('onyx_session',sessionToken);
-      pw.value='';
-      _onAuthSuccess();
-    }else{
-      if(err) err.textContent=d.error||'Wrong password.';
-      if(btn){btn.disabled=false;btn.textContent='Unlock';}
-    }
-  }catch(e){
-    if(err) err.textContent='Connection error — check your internet.';
-    if(btn){btn.disabled=false;btn.textContent='Unlock';}
-  }
 }
 
 function _onAuthSuccess(){
