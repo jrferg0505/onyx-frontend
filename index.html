@@ -1360,7 +1360,23 @@ async function _submitPin(){
 }
 
 async function initAuth(){
-  // Check if PIN is set — show setup hint if not
+  // Always show the login screen immediately — never let app through until auth confirmed
+  _showLogin();
+
+  // If we have a stored session token, verify it with the backend
+  if(sessionToken){
+    try{
+      const r=await fetch(BACKEND+'/auth/verify',{headers:{'X-API-Key':ONYX_API_KEY,'X-Session-Token':sessionToken}});
+      const d=await r.json();
+      if(d.valid===true){_onAuthSuccess();return;}  // only unlock on explicit true
+    }catch(e){}
+    // Token invalid, expired, or backend unreachable — clear it, stay on PIN screen
+    sessionToken='';
+    localStorage.removeItem('onyx_session');
+    sessionStorage.removeItem('onyx_session');
+  }
+
+  // No valid session — check if PIN has been set yet and update hint text
   try{
     const r=await fetch(BACKEND+'/auth/status',{headers:{'X-API-Key':ONYX_API_KEY}});
     if(r.ok){
@@ -1373,17 +1389,6 @@ async function initAuth(){
       }
     }
   }catch(e){}
-  // Verify existing session token
-  if(sessionToken){
-    try{
-      const r=await fetch(BACKEND+'/auth/verify',{headers:{'X-API-Key':ONYX_API_KEY,'X-Session-Token':sessionToken}});
-      if(r.ok){_onAuthSuccess();return;}
-    }catch(e){}
-    sessionToken='';
-    localStorage.removeItem('onyx_session');
-    sessionStorage.removeItem('onyx_session');
-  }
-  _showLogin();
 }
 
 function _showLogin(){
