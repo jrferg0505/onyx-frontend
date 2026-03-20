@@ -345,6 +345,29 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 #find-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:14px;color:var(--t2);font-size:15px;}
 #find-loading .spin{width:22px;height:22px;}
 
+/* ── LOGIN SCREEN ── */
+#login-screen{position:fixed;inset:0;background:#000;z-index:99999;display:flex;align-items:center;justify-content:center;padding:28px;}
+#login-screen.hidden{display:none;}
+.lbox{display:flex;flex-direction:column;align-items:center;width:100%;max-width:310px;}
+.lbox-logo{width:64px;height:64px;margin-bottom:22px;}
+.lbox-title{font-size:28px;font-weight:700;color:#fff;letter-spacing:-.5px;}
+.lbox-sub{font-size:14px;color:rgba(255,255,255,.4);margin:6px 0 28px;text-align:center;}
+#login-pw{width:100%;box-sizing:border-box;padding:15px 16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#fff;font-size:17px;text-align:center;outline:none;-webkit-appearance:none;margin-bottom:12px;font-family:var(--font);}
+#login-pw::placeholder{letter-spacing:0;color:rgba(255,255,255,.28);font-size:15px;}
+#login-pw:focus{border-color:rgba(255,255,255,.28);}
+.lbox-remember{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 2px;margin-bottom:22px;}
+.lbox-rlbl{font-size:14px;color:rgba(255,255,255,.55);}
+.ltoggle{position:relative;width:44px;height:26px;flex-shrink:0;}
+.ltoggle input{opacity:0;width:0;height:0;position:absolute;}
+.lslider{position:absolute;inset:0;background:rgba(255,255,255,.15);border-radius:13px;cursor:pointer;transition:background .2s;}
+.lslider:before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.ltoggle input:checked~.lslider{background:#30d158;}
+.ltoggle input:checked~.lslider:before{transform:translateX(18px);}
+#login-btn{width:100%;padding:15px;background:#fff;color:#000;border:none;border-radius:14px;font-size:17px;font-weight:600;cursor:pointer;font-family:var(--font);letter-spacing:-.2px;}
+#login-btn:active{opacity:.82;}
+#login-btn:disabled{opacity:.45;cursor:default;}
+#login-err{font-size:13px;color:#ff453a;min-height:18px;margin-top:10px;text-align:center;}
+#login-setup-note{font-size:12px;color:rgba(255,255,255,.28);margin-top:14px;text-align:center;max-width:240px;line-height:1.5;}
 /* ── KEY SCREEN ── */
 #ksc{display:none;position:fixed;inset:0;background:#000;z-index:300;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;}
 #ksc.on{display:flex;}
@@ -610,6 +633,28 @@ html,body{height:100%;background:#000;color:var(--t1);font-family:var(--font);-w
 <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="lbox">
+    <svg class="lbox-logo" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="30" fill="white" fill-opacity="0.08" stroke="white" stroke-opacity="0.15" stroke-width="1.5"/>
+      <circle cx="32" cy="32" r="18" fill="white" fill-opacity="0.12" stroke="white" stroke-opacity="0.25" stroke-width="1.5"/>
+      <circle cx="32" cy="32" r="8" fill="white" fill-opacity="0.9"/>
+    </svg>
+    <div class="lbox-title">Onyx</div>
+    <div class="lbox-sub">Your personal AI — enter password to continue</div>
+    <input id="login-pw" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <div class="lbox-remember">
+      <span style="color:rgba(255,255,255,.65);font-size:14px">Remember this device</span>
+      <label class="ltoggle"><input type="checkbox" id="login-remember" checked><span class="lslider"></span></label>
+    </div>
+    <button id="login-btn" onclick="doLogin()">Unlock</button>
+    <div id="login-err"></div>
+    <div id="login-setup-note"></div>
+  </div>
+</div>
+
 <div id="overlay" onclick="closeSb()"></div>
 
 <!-- KEY SCREEN -->
@@ -1250,8 +1295,106 @@ const ONYX_API_KEY='e2OOFi-KAyywvwd-v9s36xvrRqFkc-udCy6lwDPH0AQ';
 // Authenticated fetch wrapper — automatically sends X-API-Key on every backend call
 function bFetch(path,opts={}){
   const hdrs={'X-API-Key':ONYX_API_KEY,...(opts.headers||{})};
+  if(sessionToken) hdrs['X-Session-Token']=sessionToken;
   return fetch(BACKEND+path,{...opts,headers:hdrs});
 }
+
+// ── AUTH ─────────────────────────────────────────────────────────────────────
+async function initAuth(){
+  // Check if backend has a password set up
+  try{
+    const r=await fetch(BACKEND+'/auth/status',{headers:{'X-API-Key':ONYX_API_KEY}});
+    if(r.ok){
+      const d=await r.json();
+      if(!d.setup){
+        const note=document.getElementById('login-setup-note');
+        if(note) note.textContent='First time? Set your password above — you\'ll use it to log in on any device.';
+      }
+    }
+  }catch(e){}
+  // If we already have a session token, verify it's still valid
+  if(sessionToken){
+    try{
+      const r=await fetch(BACKEND+'/auth/verify',{headers:{'X-API-Key':ONYX_API_KEY,'X-Session-Token':sessionToken}});
+      if(r.ok){_onAuthSuccess();return;}
+    }catch(e){}
+    // Token invalid or expired — clear it
+    sessionToken='';
+    localStorage.removeItem('onyx_session');
+    sessionStorage.removeItem('onyx_session');
+  }
+  _showLogin();
+}
+
+function _showLogin(){
+  const s=document.getElementById('login-screen');
+  if(s) s.classList.remove('hidden');
+  setTimeout(()=>{const pw=document.getElementById('login-pw');if(pw)pw.focus();},150);
+}
+
+function _hideLogin(){
+  const s=document.getElementById('login-screen');
+  if(s) s.classList.add('hidden');
+}
+
+async function doLogin(){
+  const pw=document.getElementById('login-pw');
+  const err=document.getElementById('login-err');
+  const remember=document.getElementById('login-remember');
+  const btn=document.getElementById('login-btn');
+  if(!pw||!pw.value.trim()){if(err)err.textContent='Enter your password.';return;}
+  if(btn){btn.disabled=true;btn.textContent='Checking...';}
+  if(err) err.textContent='';
+  try{
+    const r=await fetch(BACKEND+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-API-Key':ONYX_API_KEY},body:JSON.stringify({password:pw.value})});
+    const d=await r.json();
+    if(d.token){
+      sessionToken=d.token;
+      if(remember&&remember.checked) localStorage.setItem('onyx_session',sessionToken);
+      else sessionStorage.setItem('onyx_session',sessionToken);
+      pw.value='';
+      _onAuthSuccess();
+    }else{
+      if(err) err.textContent=d.error||'Wrong password.';
+      if(btn){btn.disabled=false;btn.textContent='Unlock';}
+    }
+  }catch(e){
+    if(err) err.textContent='Connection error — check your internet.';
+    if(btn){btn.disabled=false;btn.textContent='Unlock';}
+  }
+}
+
+function _onAuthSuccess(){
+  _hideLogin();
+  if(key) syncMemsFromBackend();
+  _syncChatHistory();
+}
+
+async function _syncChatHistory(){
+  try{
+    const r=await bFetch('/chat/history');
+    if(!r.ok) return;
+    const d=await r.json();
+    if(d.conversations&&d.conversations.length){
+      setConvs(d.conversations);
+      renderHist();
+    }
+  }catch(e){}
+}
+
+function _pushChatHistory(convs){
+  if(!sessionToken) return;
+  bFetch('/chat/history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversations:convs})}).catch(()=>{});
+}
+
+async function doLogout(){
+  try{await bFetch('/auth/logout',{method:'POST'});}catch(e){}
+  sessionToken='';
+  localStorage.removeItem('onyx_session');
+  sessionStorage.removeItem('onyx_session');
+  _showLogin();
+}
+
 // ── MULTI-AGENT SYSTEM ──────────────────────────────────────────────────────
 const _BASE_PERSONALITY = `You are Onyx — Reed's personal AI. Not a chatbot, not a corporate assistant. Think of yourself as that one friend who's brutally honest, actually knows what they're talking about, and genuinely gives a damn about how things turn out for Reed.
 
@@ -1317,6 +1460,7 @@ function classifyComplexity(text, agents){
 }
 
 let key=localStorage.getItem('reed_key')||'';
+let sessionToken=localStorage.getItem('onyx_session')||sessionStorage.getItem('onyx_session')||'';
 let msgs=[],busy=false,editJob=null,activeConv=null,activeProj=null;
 let pendingAttachment=null;
 
@@ -1810,9 +1954,9 @@ function saveConv(){
   const title=msgs[0]?.content?.slice(0,42)||'Chat';
   const preview=msgs[msgs.length-1]?.content?.slice(0,60)||'';
   const date=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  if(activeConv){const i=convs.findIndex(c=>c.id===activeConv);if(i>-1){convs[i]={...convs[i],title,preview,date,messages:msgs,msgCount:msgs.length};setConvs(convs);return;}}
+  if(activeConv){const i=convs.findIndex(c=>c.id===activeConv);if(i>-1){convs[i]={...convs[i],title,preview,date,messages:msgs,msgCount:msgs.length};setConvs(convs);_pushChatHistory(convs);return;}}
   const nc={id:Date.now().toString(),title,preview,date,messages:msgs,msgCount:msgs.length};
-  activeConv=nc.id;convs.unshift(nc);setConvs(convs);
+  activeConv=nc.id;convs.unshift(nc);setConvs(convs);_pushChatHistory(convs);
 }
 
 function loadConv(id){
@@ -3502,8 +3646,7 @@ const VM = (() => {
 window.addEventListener('DOMContentLoaded', () => {
   VM.init();
   dashLoad(); // start clock + load dashboard data
-  // Sync memories from backend on load (non-blocking)
-  if(key) syncMemsFromBackend();
+  initAuth(); // auth gate — shows login screen or syncs data on valid session
 
   // Auto-launch voice mode when opened via ?voice=true or /voice path
   const params = new URLSearchParams(window.location.search);
